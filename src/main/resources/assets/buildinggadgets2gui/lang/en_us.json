@@ -1,0 +1,13 @@
+{
+  "itemGroup.buildinggadgets2gui": "Building Gadgets 2 GUI Tab",
+  "block.buildinggadgets2gui.example_block": "Example Block",
+  "item.buildinggadgets2gui.example_item": "Example Item",
+
+  "buildinggadgets2gui.configuration.title": "Building Gadgets 2 GUI Configs",
+  "buildinggadgets2gui.configuration.section.buildinggadgets2gui.common.toml": "Building Gadgets 2 GUI Configs",
+  "buildinggadgers2gui.configuration.section.buildinggadgets2gui.common.toml.title": "Building Gadgets 2 GUI Configs",
+  "buildinggadgets2gui.configuration.items": "Item List",
+  "buildinggadgers2gui.configuration.logDirtBlock": "Log Dirt Block",
+  "buildinggadgets2gui.configuration.magicNumberIntroduction": "Magic Number Text",
+  "buildinggadgets2gui.configuration.magicNumber": "Magic Number"
+}
