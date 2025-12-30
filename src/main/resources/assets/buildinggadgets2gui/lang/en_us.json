@@ -5,9 +5,14 @@
 
   "buildinggadgets2gui.configuration.title": "Building Gadgets 2 GUI Configs",
   "buildinggadgets2gui.configuration.section.buildinggadgets2gui.common.toml": "Building Gadgets 2 GUI Configs",
-  "buildinggadgers2gui.configuration.section.buildinggadgets2gui.common.toml.title": "Building Gadgets 2 GUI Configs",
+  "buildinggadgets2gui.configuration.section.buildinggadgets2gui.common.toml.title": "Building Gadgets 2 GUI Configs",
   "buildinggadgets2gui.configuration.items": "Item List",
-  "buildinggadgers2gui.configuration.logDirtBlock": "Log Dirt Block",
+  "buildinggadgets2gui.configuration.logDirtBlock": "Log Dirt Block",
   "buildinggadgets2gui.configuration.magicNumberIntroduction": "Magic Number Text",
-  "buildinggadgets2gui.configuration.magicNumber": "Magic Number"
+  "buildinggadgets2gui.configuration.magicNumber": "Magic Number",
+
+  "key.categories.buildinggadgets2gui": "Building Gadgets 2 GUI",
+  "key.buildinggadgets2gui.open_gui": "Open Copy/Paste GUI",
+  "key.buildinggadgets2gui.copy_data": "Copy Data from Tool",
+  "key.buildinggadgets2gui.paste_data": "Paste Data to Tool"
 }

@@ -4,6 +4,7 @@ import com.direwolf20.buildinggadgets2.common.items.GadgetCopyPaste;
 import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
 import com.direwolf20.buildinggadgets2.util.GadgetNBT;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +20,19 @@ import java.util.UUID;
 @EventBusSubscriber(modid = BuildingGadgets2GUI.MODID)
 public class CopyPasteEventListener {
 
-    private static final HashMap<UUID, UUID> lastKnownCopyUUID = new HashMap<>();
+    private static final HashMap<UUID, CopyDataSnapshot> trackedGadgets = new HashMap<>();
+    
+    private static class CopyDataSnapshot {
+        UUID copyUUID;
+        int blockCount;
+        long lastCheckTick;
+        
+        CopyDataSnapshot(UUID copyUUID, int blockCount, long tick) {
+            this.copyUUID = copyUUID;
+            this.blockCount = blockCount;
+            this.lastCheckTick = tick;
+        }
+    }
 
     @SubscribeEvent
     public static void onPlayerRightClickBlock(PlayerInteractEvent.RightClickBlock event) {
@@ -34,13 +47,11 @@ public class CopyPasteEventListener {
                     UUID gadgetUUID = GadgetNBT.getUUID(heldItem);
                     
                     BuildingGadgets2GUI.LOGGER.info("==============================================");
-                    BuildingGadgets2GUI.LOGGER.info("Copy Paste Gadget - COPY operation detected!");
+                    BuildingGadgets2GUI.LOGGER.info("Copy Paste Gadget - COPY operation initiated");
                     BuildingGadgets2GUI.LOGGER.info("Player: {}", player.getName().getString());
                     BuildingGadgets2GUI.LOGGER.info("Position: {}", event.getPos());
-                    BuildingGadgets2GUI.LOGGER.info("Gadget UUID: {}", gadgetUUID);
+                    BuildingGadgets2GUI.LOGGER.info("Gadget UUID: {}", formatUUID(gadgetUUID));
                     BuildingGadgets2GUI.LOGGER.info("==============================================");
-                    
-                    lastKnownCopyUUID.put(gadgetUUID, GadgetNBT.getCopyUUID(heldItem));
                 }
             }
         }
@@ -48,47 +59,96 @@ public class CopyPasteEventListener {
 
     @SubscribeEvent
     public static void onServerTick(ServerTickEvent.Post event) {
-        if (lastKnownCopyUUID.isEmpty()) return;
-        
         ServerLevel overworld = event.getServer().overworld();
         BG2Data bg2Data = BG2Data.get(overworld);
+        long currentTick = overworld.getGameTime();
         
-        ArrayList<UUID> toRemove = new ArrayList<>();
+        for (Player player : overworld.players()) {
+            ItemStack mainHand = player.getMainHandItem();
+            ItemStack offHand = player.getOffhandItem();
+            
+            checkGadget(mainHand, bg2Data, player, currentTick);
+            checkGadget(offHand, bg2Data, player, currentTick);
+        }
+    }
+    
+    private static void checkGadget(ItemStack stack, BG2Data bg2Data, Player player, long currentTick) {
+        if (!(stack.getItem() instanceof GadgetCopyPaste)) return;
         
-        for (UUID gadgetUUID : lastKnownCopyUUID.keySet()) {
-            UUID oldCopyUUID = lastKnownCopyUUID.get(gadgetUUID);
+        UUID gadgetUUID = GadgetNBT.getUUID(stack);
+        UUID currentCopyUUID = GadgetNBT.hasCopyUUID(stack) ? GadgetNBT.getCopyUUID(stack) : null;
+        
+        ArrayList<StatePos> copiedBlocks = bg2Data.getCopyPasteList(gadgetUUID, false);
+        int currentBlockCount = (copiedBlocks != null) ? copiedBlocks.size() : 0;
+        
+        CopyDataSnapshot lastSnapshot = trackedGadgets.get(gadgetUUID);
+        
+        if (lastSnapshot == null) {
+            if (currentBlockCount > 0) {
+                logEvent("NEW_COPY", player, gadgetUUID, currentCopyUUID, null, 0, currentBlockCount, copiedBlocks);
+                trackedGadgets.put(gadgetUUID, new CopyDataSnapshot(currentCopyUUID, currentBlockCount, currentTick));
+            }
+        } else {
+            boolean copyUUIDChanged = (currentCopyUUID != null && !currentCopyUUID.equals(lastSnapshot.copyUUID));
+            boolean blockCountChanged = (currentBlockCount != lastSnapshot.blockCount);
             
-            ArrayList<StatePos> copiedBlocks = bg2Data.getCopyPasteList(gadgetUUID, false);
-            
-            if (copiedBlocks != null && !copiedBlocks.isEmpty()) {
-                BuildingGadgets2GUI.LOGGER.info("==============================================");
-                BuildingGadgets2GUI.LOGGER.info("Copy Paste Gadget - COPY COMPLETED!");
-                BuildingGadgets2GUI.LOGGER.info("Gadget UUID: {}", gadgetUUID);
-                BuildingGadgets2GUI.LOGGER.info("Total blocks copied: {}", copiedBlocks.size());
-                BuildingGadgets2GUI.LOGGER.info("First 5 blocks:");
-                
-                int count = 0;
-                for (StatePos statePos : copiedBlocks) {
-                    if (count >= 5) break;
-                    BuildingGadgets2GUI.LOGGER.info("  - {} at {}", 
-                        statePos.state.getBlock().getName().getString(), 
-                        statePos.pos);
-                    count++;
+            if (copyUUIDChanged || blockCountChanged) {
+                if (currentBlockCount == 0 && lastSnapshot.blockCount > 0) {
+                    logEvent("CLEARED", player, gadgetUUID, currentCopyUUID, lastSnapshot.copyUUID, lastSnapshot.blockCount, 0, null);
+                } else if (copyUUIDChanged && currentBlockCount > 0) {
+                    logEvent("MODIFIED_COPY", player, gadgetUUID, currentCopyUUID, lastSnapshot.copyUUID, lastSnapshot.blockCount, currentBlockCount, copiedBlocks);
+                } else if (blockCountChanged && currentBlockCount > 0) {
+                    logEvent("RANGE_ADJUSTED", player, gadgetUUID, currentCopyUUID, lastSnapshot.copyUUID, lastSnapshot.blockCount, currentBlockCount, copiedBlocks);
                 }
                 
-                if (copiedBlocks.size() > 5) {
-                    BuildingGadgets2GUI.LOGGER.info("  ... and {} more blocks", copiedBlocks.size() - 5);
-                }
-                
-                BuildingGadgets2GUI.LOGGER.info("==============================================");
-                
-                toRemove.add(gadgetUUID);
+                trackedGadgets.put(gadgetUUID, new CopyDataSnapshot(currentCopyUUID, currentBlockCount, currentTick));
+            }
+        }
+    }
+    
+    private static void logEvent(String eventType, Player player, UUID gadgetUUID, UUID newCopyUUID, 
+                                 UUID oldCopyUUID, int oldCount, int newCount, ArrayList<StatePos> blocks) {
+        BuildingGadgets2GUI.LOGGER.info("==============================================");
+        BuildingGadgets2GUI.LOGGER.info("Copy Paste Event: {}", eventType);
+        BuildingGadgets2GUI.LOGGER.info("Player: {}", player.getName().getString());
+        BuildingGadgets2GUI.LOGGER.info("Gadget UUID: {}", formatUUID(gadgetUUID));
+        
+        if (oldCopyUUID != null) {
+            BuildingGadgets2GUI.LOGGER.info("Old Copy UUID: {}", formatUUID(oldCopyUUID));
+        }
+        if (newCopyUUID != null) {
+            BuildingGadgets2GUI.LOGGER.info("New Copy UUID: {}", formatUUID(newCopyUUID));
+        }
+        
+        if (eventType.equals("CLEARED")) {
+            BuildingGadgets2GUI.LOGGER.info("Previous blocks: {} -> Now: 0", oldCount);
+        } else if (eventType.equals("MODIFIED_COPY") || eventType.equals("RANGE_ADJUSTED")) {
+            BuildingGadgets2GUI.LOGGER.info("Block count: {} -> {}", oldCount, newCount);
+        } else {
+            BuildingGadgets2GUI.LOGGER.info("Total blocks: {}", newCount);
+        }
+        
+        if (blocks != null && !blocks.isEmpty()) {
+            BuildingGadgets2GUI.LOGGER.info("First 3 blocks:");
+            int count = 0;
+            for (StatePos statePos : blocks) {
+                if (count >= 3) break;
+                BuildingGadgets2GUI.LOGGER.info("  - {} at {}", 
+                    statePos.state.getBlock().getName().getString(), 
+                    statePos.pos);
+                count++;
+            }
+            if (blocks.size() > 3) {
+                BuildingGadgets2GUI.LOGGER.info("  ... and {} more blocks", blocks.size() - 3);
             }
         }
         
-        for (UUID uuid : toRemove) {
-            lastKnownCopyUUID.remove(uuid);
-        }
+        BuildingGadgets2GUI.LOGGER.info("==============================================");
+    }
+    
+    private static String formatUUID(UUID uuid) {
+        if (uuid == null) return "null";
+        return uuid.toString().substring(0, 8) + "...";
     }
 }
 

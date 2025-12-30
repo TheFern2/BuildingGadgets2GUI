@@ -24,8 +24,8 @@ public class BuildingGadgets2GUIClient {
 
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
-        // Some client setup code
         BuildingGadgets2GUI.LOGGER.info("HELLO FROM CLIENT SETUP");
         BuildingGadgets2GUI.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
+        BuildingGadgets2GUI.LOGGER.info("Initializing CopyPasteDataMonitor for BuildingGadgets2 integration");
     }
 }
