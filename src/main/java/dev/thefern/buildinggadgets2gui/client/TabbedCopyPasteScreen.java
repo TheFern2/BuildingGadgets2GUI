@@ -6,6 +6,7 @@ import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SchematicsTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SettingsTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.TabPanel;
+import dev.thefern.buildinggadgets2gui.client.tabs.TrashTab;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -25,11 +26,13 @@ public class TabbedCopyPasteScreen extends Screen {
     private TabType currentTab = TabType.SCHEMATICS;
     private TabPanel schematicsTab;
     private TabPanel historyTab;
+    private TabPanel trashTab;
     private TabPanel settingsTab;
     private TabPanel debugTab;
     
     private Button schematicsButton;
     private Button historyButton;
+    private Button trashButton;
     private Button settingsButton;
     private Button debugButton;
     private Button closeButton;
@@ -39,6 +42,7 @@ public class TabbedCopyPasteScreen extends Screen {
     public enum TabType {
         SCHEMATICS,
         HISTORY,
+        TRASH,
         SETTINGS,
         DEBUG
     }
@@ -58,6 +62,7 @@ public class TabbedCopyPasteScreen extends Screen {
         
         schematicsTab = new SchematicsTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         historyTab = new HistoryTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
+        trashTab = new TrashTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         settingsTab = new SettingsTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         debugTab = new DebugTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         
@@ -82,6 +87,17 @@ public class TabbedCopyPasteScreen extends Screen {
             .build()
         );
         currentX += TAB_WIDTH;
+        
+        trashButton = this.addRenderableWidget(
+            Button.builder(
+                Component.literal("🗑"),
+                button -> switchTab(TabType.TRASH)
+            )
+            .bounds(currentX, topPos, ICON_TAB_WIDTH, TAB_HEIGHT)
+            .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Trash")))
+            .build()
+        );
+        currentX += ICON_TAB_WIDTH;
         
         settingsButton = this.addRenderableWidget(
             Button.builder(
@@ -118,6 +134,7 @@ public class TabbedCopyPasteScreen extends Screen {
         
         schematicsTab.init();
         historyTab.init();
+        trashTab.init();
         settingsTab.init();
         debugTab.init();
         
@@ -127,6 +144,11 @@ public class TabbedCopyPasteScreen extends Screen {
             }
         }
         for (var widget : historyTab.getWidgets()) {
+            if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
+                this.addRenderableWidget(abstractWidget);
+            }
+        }
+        for (var widget : trashTab.getWidgets()) {
             if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
                 this.addRenderableWidget(abstractWidget);
             }
@@ -144,6 +166,7 @@ public class TabbedCopyPasteScreen extends Screen {
         
         schematicsTab.onTabActivated();
         historyTab.onTabDeactivated();
+        trashTab.onTabDeactivated();
         settingsTab.onTabDeactivated();
         debugTab.onTabDeactivated();
     }
@@ -160,6 +183,7 @@ public class TabbedCopyPasteScreen extends Screen {
         return switch (currentTab) {
             case SCHEMATICS -> schematicsTab;
             case HISTORY -> historyTab;
+            case TRASH -> trashTab;
             case SETTINGS -> settingsTab;
             case DEBUG -> debugTab;
         };
@@ -189,6 +213,10 @@ public class TabbedCopyPasteScreen extends Screen {
         guiGraphics.fill(currentX, topPos, currentX + TAB_WIDTH, topPos + TAB_HEIGHT, 
             currentTab == TabType.HISTORY ? activeColor : inactiveColor);
         currentX += TAB_WIDTH;
+        
+        guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
+            currentTab == TabType.TRASH ? activeColor : inactiveColor);
+        currentX += ICON_TAB_WIDTH;
         
         guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
             currentTab == TabType.SETTINGS ? activeColor : inactiveColor);
