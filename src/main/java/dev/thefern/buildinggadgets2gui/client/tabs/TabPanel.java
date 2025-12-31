@@ -66,6 +66,10 @@ public abstract class TabPanel {
         return false;
     }
     
+    public Screen getParentScreen() {
+        return parentScreen;
+    }
+    
     public List<Renderable> getWidgets() {
         return widgets;
     }
