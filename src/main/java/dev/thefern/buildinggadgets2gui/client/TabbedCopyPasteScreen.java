@@ -1,8 +1,10 @@
 package dev.thefern.buildinggadgets2gui.client;
 
+import dev.thefern.buildinggadgets2gui.Config;
 import dev.thefern.buildinggadgets2gui.client.tabs.DebugTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SchematicsTab;
+import dev.thefern.buildinggadgets2gui.client.tabs.SettingsTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.TabPanel;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -15,24 +17,30 @@ public class TabbedCopyPasteScreen extends Screen {
     private static final int WINDOW_HEIGHT = 260;
     private static final int TAB_HEIGHT = 24;
     private static final int TAB_WIDTH = 100;
+    private static final int ICON_TAB_WIDTH = 30;
     
     private int leftPos;
     private int topPos;
     
-    private TabType currentTab = TabType.DEBUG;
-    private TabPanel debugTab;
+    private TabType currentTab = TabType.SCHEMATICS;
     private TabPanel schematicsTab;
     private TabPanel historyTab;
+    private TabPanel settingsTab;
+    private TabPanel debugTab;
     
-    private Button debugButton;
     private Button schematicsButton;
     private Button historyButton;
+    private Button settingsButton;
+    private Button debugButton;
     private Button closeButton;
     
+    private boolean showDebugTab;
+    
     public enum TabType {
-        DEBUG,
         SCHEMATICS,
-        HISTORY
+        HISTORY,
+        SETTINGS,
+        DEBUG
     }
     
     public TabbedCopyPasteScreen() {
@@ -46,36 +54,58 @@ public class TabbedCopyPasteScreen extends Screen {
         this.leftPos = (this.width - WINDOW_WIDTH) / 2;
         this.topPos = Math.max(10, (this.height - WINDOW_HEIGHT) / 2);
         
-        debugTab = new DebugTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
+        this.showDebugTab = Config.SHOW_DEBUG_TAB.get();
+        
         schematicsTab = new SchematicsTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         historyTab = new HistoryTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
+        settingsTab = new SettingsTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
+        debugTab = new DebugTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         
-        debugButton = this.addRenderableWidget(
-            Button.builder(
-                Component.literal("Debug"),
-                button -> switchTab(TabType.DEBUG)
-            )
-            .bounds(leftPos, topPos, TAB_WIDTH, TAB_HEIGHT)
-            .build()
-        );
+        int currentX = leftPos;
         
         schematicsButton = this.addRenderableWidget(
             Button.builder(
                 Component.literal("Schematics"),
                 button -> switchTab(TabType.SCHEMATICS)
             )
-            .bounds(leftPos + TAB_WIDTH, topPos, TAB_WIDTH, TAB_HEIGHT)
+            .bounds(currentX, topPos, TAB_WIDTH, TAB_HEIGHT)
             .build()
         );
+        currentX += TAB_WIDTH;
         
         historyButton = this.addRenderableWidget(
             Button.builder(
                 Component.literal("History"),
                 button -> switchTab(TabType.HISTORY)
             )
-            .bounds(leftPos + TAB_WIDTH * 2, topPos, TAB_WIDTH, TAB_HEIGHT)
+            .bounds(currentX, topPos, TAB_WIDTH, TAB_HEIGHT)
             .build()
         );
+        currentX += TAB_WIDTH;
+        
+        settingsButton = this.addRenderableWidget(
+            Button.builder(
+                Component.literal("⚙"),
+                button -> switchTab(TabType.SETTINGS)
+            )
+            .bounds(currentX, topPos, ICON_TAB_WIDTH, TAB_HEIGHT)
+            .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Settings")))
+            .build()
+        );
+        currentX += ICON_TAB_WIDTH;
+        
+        if (showDebugTab) {
+            debugButton = this.addRenderableWidget(
+                Button.builder(
+                    Component.literal("🐛"),
+                    button -> switchTab(TabType.DEBUG)
+                )
+                .bounds(currentX, topPos, ICON_TAB_WIDTH, TAB_HEIGHT)
+                .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Debug")))
+                .build()
+            );
+            currentX += ICON_TAB_WIDTH;
+        }
         
         closeButton = this.addRenderableWidget(
             Button.builder(
@@ -86,15 +116,11 @@ public class TabbedCopyPasteScreen extends Screen {
             .build()
         );
         
-        debugTab.init();
         schematicsTab.init();
         historyTab.init();
+        settingsTab.init();
+        debugTab.init();
         
-        for (var widget : debugTab.getWidgets()) {
-            if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
-                this.addRenderableWidget(abstractWidget);
-            }
-        }
         for (var widget : schematicsTab.getWidgets()) {
             if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
                 this.addRenderableWidget(abstractWidget);
@@ -105,10 +131,21 @@ public class TabbedCopyPasteScreen extends Screen {
                 this.addRenderableWidget(abstractWidget);
             }
         }
+        for (var widget : settingsTab.getWidgets()) {
+            if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
+                this.addRenderableWidget(abstractWidget);
+            }
+        }
+        for (var widget : debugTab.getWidgets()) {
+            if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
+                this.addRenderableWidget(abstractWidget);
+            }
+        }
         
-        debugTab.onTabActivated();
-        schematicsTab.onTabDeactivated();
+        schematicsTab.onTabActivated();
         historyTab.onTabDeactivated();
+        settingsTab.onTabDeactivated();
+        debugTab.onTabDeactivated();
     }
     
     private void switchTab(TabType tab) {
@@ -121,9 +158,10 @@ public class TabbedCopyPasteScreen extends Screen {
     
     private TabPanel getCurrentTabPanel() {
         return switch (currentTab) {
-            case DEBUG -> debugTab;
             case SCHEMATICS -> schematicsTab;
             case HISTORY -> historyTab;
+            case SETTINGS -> settingsTab;
+            case DEBUG -> debugTab;
         };
     }
     
@@ -142,13 +180,27 @@ public class TabbedCopyPasteScreen extends Screen {
         int activeColor = 0xFF505050;
         int inactiveColor = 0xFF303030;
         
-        guiGraphics.fill(leftPos, topPos, leftPos + TAB_WIDTH, topPos + TAB_HEIGHT, 
-            currentTab == TabType.DEBUG ? activeColor : inactiveColor);
-        guiGraphics.fill(leftPos + TAB_WIDTH, topPos, leftPos + TAB_WIDTH * 2, topPos + TAB_HEIGHT, 
+        int currentX = leftPos;
+        
+        guiGraphics.fill(currentX, topPos, currentX + TAB_WIDTH, topPos + TAB_HEIGHT, 
             currentTab == TabType.SCHEMATICS ? activeColor : inactiveColor);
-        guiGraphics.fill(leftPos + TAB_WIDTH * 2, topPos, leftPos + TAB_WIDTH * 3, topPos + TAB_HEIGHT, 
+        currentX += TAB_WIDTH;
+        
+        guiGraphics.fill(currentX, topPos, currentX + TAB_WIDTH, topPos + TAB_HEIGHT, 
             currentTab == TabType.HISTORY ? activeColor : inactiveColor);
-        guiGraphics.fill(leftPos + TAB_WIDTH * 3, topPos, leftPos + WINDOW_WIDTH, topPos + TAB_HEIGHT, 
+        currentX += TAB_WIDTH;
+        
+        guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
+            currentTab == TabType.SETTINGS ? activeColor : inactiveColor);
+        currentX += ICON_TAB_WIDTH;
+        
+        if (showDebugTab) {
+            guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
+                currentTab == TabType.DEBUG ? activeColor : inactiveColor);
+            currentX += ICON_TAB_WIDTH;
+        }
+        
+        guiGraphics.fill(currentX, topPos, leftPos + WINDOW_WIDTH, topPos + TAB_HEIGHT, 
             0xFF202020);
     }
     

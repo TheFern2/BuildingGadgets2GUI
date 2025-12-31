@@ -28,6 +28,10 @@ public class Config {
             .comment("A list of items to log on common setup.")
             .defineListAllowEmpty("items", List.of("minecraft:iron_ingot"), () -> "", Config::validateItemName);
 
+    public static final ModConfigSpec.BooleanValue SHOW_DEBUG_TAB = BUILDER
+            .comment("Whether to show the Debug tab in the Copy/Paste GUI (for development)")
+            .define("showDebugTab", false);
+
     static final ModConfigSpec SPEC = BUILDER.build();
 
     private static boolean validateItemName(final Object obj) {
