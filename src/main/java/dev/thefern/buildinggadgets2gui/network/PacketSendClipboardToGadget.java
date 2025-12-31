@@ -62,29 +62,10 @@ public class PacketSendClipboardToGadget {
                 return;
             }
             
-            BuildingGadgets2GUI.LOGGER.info("Calculating bounding box for copy positions...");
-            net.minecraft.core.BlockPos minPos = buildList.get(0).pos.immutable();
-            net.minecraft.core.BlockPos maxPos = buildList.get(0).pos.immutable();
-            
-            for (StatePos statePos : buildList) {
-                net.minecraft.core.BlockPos pos = statePos.pos;
-                minPos = new net.minecraft.core.BlockPos(
-                    Math.min(minPos.getX(), pos.getX()),
-                    Math.min(minPos.getY(), pos.getY()),
-                    Math.min(minPos.getZ(), pos.getZ())
-                );
-                maxPos = new net.minecraft.core.BlockPos(
-                    Math.max(maxPos.getX(), pos.getX()),
-                    Math.max(maxPos.getY(), pos.getY()),
-                    Math.max(maxPos.getZ(), pos.getZ())
-                );
-            }
-            
-            BuildingGadgets2GUI.LOGGER.info("Bounding box: {} to {}", minPos, maxPos);
-            
-            BuildingGadgets2GUI.LOGGER.info("Setting copy start/end positions on gadget...");
-            GadgetNBT.setCopyStartPos(heldItem, minPos);
-            GadgetNBT.setCopyEndPos(heldItem, maxPos);
+            BuildingGadgets2GUI.LOGGER.info("Clearing copy start/end positions (no green box needed for clipboard paste)");
+            net.minecraft.core.BlockPos nullPos = new net.minecraft.core.BlockPos(-999, -999, -999);
+            GadgetNBT.setCopyStartPos(heldItem, nullPos);
+            GadgetNBT.setCopyEndPos(heldItem, nullPos);
             
             BuildingGadgets2GUI.LOGGER.info("Adding to BG2Data...");
             bg2Data.addToCopyPaste(gadgetUUID, buildList);
