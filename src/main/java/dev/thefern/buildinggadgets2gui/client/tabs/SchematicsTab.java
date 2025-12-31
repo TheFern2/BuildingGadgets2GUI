@@ -2,6 +2,7 @@ package dev.thefern.buildinggadgets2gui.client.tabs;
 
 import dev.thefern.buildinggadgets2gui.client.ClipboardUtils;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
+import dev.thefern.buildinggadgets2gui.client.dialogs.CreateFolderDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.SaveSchematicDialog;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicFile;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicFolder;
@@ -31,6 +32,7 @@ public class SchematicsTab extends TabPanel {
     private SchematicsList schematicsList;
     private SchematicFile selectedFile = null;
     private Button backButton;
+    private Button createFolderButton;
     private Button saveButton;
     private Button deleteButton;
     private Button sendToToolButton;
@@ -61,11 +63,19 @@ public class SchematicsTab extends TabPanel {
         backButton.active = false;
         widgets.add(backButton);
         
+        createFolderButton = Button.builder(
+            Component.literal("📁"),
+            button -> onCreateFolderPressed()
+        )
+        .bounds(x + PADDING + 190, buttonY, 20, 20)
+        .build();
+        widgets.add(createFolderButton);
+        
         saveButton = Button.builder(
             Component.literal("Save Schematic"),
             button -> onSavePressed()
         )
-        .bounds(x + PADDING + 190, buttonY, 120, 20)
+        .bounds(x + PADDING + 215, buttonY, 120, 20)
         .build();
         widgets.add(saveButton);
         
@@ -266,6 +276,25 @@ public class SchematicsTab extends TabPanel {
         SchematicManager.navigateUp();
         schematicsList.refreshList();
         onNavigate();
+    }
+
+    private void onCreateFolderPressed() {
+        CreateFolderDialog dialog = new CreateFolderDialog(
+            parentScreen,
+            folderName -> onCreateFolderConfirmed(folderName),
+            () -> System.out.println("Folder creation cancelled")
+        );
+        Minecraft.getInstance().setScreen(dialog);
+    }   
+
+    private void onCreateFolderConfirmed(String folderName) {
+        boolean success = SchematicManager.createFolder(folderName);
+        if (success) {
+            System.out.println("Created folder: " + folderName);
+            schematicsList.refreshList();
+        } else {
+            System.err.println("Failed to create folder: " + folderName);
+        }
     }
     
     private void onSavePressed() {
