@@ -100,8 +100,8 @@ public class CreateFolderDialog extends Screen {
         String folderName = folderNameField.getValue().trim();
         if (!folderName.isEmpty()) {
             if (isValidFolderName(folderName)) {
-                this.minecraft.setScreen(parent);
                 onConfirm.accept(folderName);
+                this.minecraft.setScreen(parent);
             }
         }
     }
