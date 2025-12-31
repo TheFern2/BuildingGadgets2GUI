@@ -82,9 +82,22 @@ public class BuildingGadgets2GUI {
 
         // Register the item to a creative tab
         modEventBus.addListener(this::addCreative);
+        
+        // Register network packets
+        modEventBus.addListener(this::registerNetworking);
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+    }
+    
+    private void registerNetworking(net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent event) {
+        final net.neoforged.neoforge.network.registration.PayloadRegistrar registrar = event.registrar(MODID);
+        
+        registrar.playToServer(
+            dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload.TYPE,
+            dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload.STREAM_CODEC,
+            dev.thefern.buildinggadgets2gui.network.PacketSendClipboardToGadget.get()::handle
+        );
     }
 
     private void commonSetup(FMLCommonSetupEvent event) {
