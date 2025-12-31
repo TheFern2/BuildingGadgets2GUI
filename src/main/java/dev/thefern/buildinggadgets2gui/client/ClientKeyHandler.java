@@ -14,7 +14,7 @@ public class ClientKeyHandler {
         Minecraft mc = Minecraft.getInstance();
         
         if (KeyBindings.OPEN_GUI.consumeClick()) {
-            mc.setScreen(new CopyPasteScreen());
+            mc.setScreen(new TabbedCopyPasteScreen());
         }
         
         if (KeyBindings.COPY_DATA.consumeClick()) {
