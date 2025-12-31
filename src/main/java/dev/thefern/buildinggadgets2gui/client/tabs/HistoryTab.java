@@ -4,6 +4,7 @@ import com.direwolf20.buildinggadgets2.common.items.GadgetCopyPaste;
 import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
 import com.direwolf20.buildinggadgets2.util.GadgetNBT;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import dev.thefern.buildinggadgets2gui.Config;
 import dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -272,7 +273,17 @@ public class HistoryTab extends TabPanel {
         );
         copyHistory.add(0, newEntry);
         
+        trimHistoryToLimit();
+        
         System.out.println("Added to history (total entries: " + copyHistory.size() + ")");
+    }
+    
+    public static void trimHistoryToLimit() {
+        int maxEntries = Config.MAX_HISTORY_ENTRIES.get();
+        while (copyHistory.size() > maxEntries) {
+            HistoryEntry removed = copyHistory.remove(copyHistory.size() - 1);
+            System.out.println("Removed oldest history entry: [" + removed.timestamp + "] " + removed.blockCount + " blocks (FIFO limit: " + maxEntries + ")");
+        }
     }
     
     public static void setClipboard(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount) {

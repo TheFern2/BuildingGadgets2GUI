@@ -32,6 +32,14 @@ public class Config {
             .comment("Whether to show the Debug tab in the Copy/Paste GUI (for development)")
             .define("showDebugTab", false);
 
+    // This configuration value defines the maximum number of history entries
+    // that are stored in the application's copy/paste GUI history feature.
+    // When the number of entries exceeds this number, the oldest entries will be removed.
+    // The valid range is between 1 and 500, and the default value is 30.
+    public static final ModConfigSpec.IntValue MAX_HISTORY_ENTRIES = BUILDER
+            .comment("Maximum number of history entries to keep (older entries will be removed)")
+            .defineInRange("maxHistoryEntries", 30, 1, 500);
+
     static final ModConfigSpec SPEC = BUILDER.build();
 
     private static boolean validateItemName(final Object obj) {
