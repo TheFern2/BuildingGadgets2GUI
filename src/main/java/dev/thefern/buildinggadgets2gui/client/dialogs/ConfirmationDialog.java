@@ -70,6 +70,8 @@ public class ConfirmationDialog extends Screen {
         graphics.fill(dialogX, dialogY, dialogX + 2, dialogY + DIALOG_HEIGHT, 0xFF4A4A4A);
         graphics.fill(dialogX + DIALOG_WIDTH - 2, dialogY, dialogX + DIALOG_WIDTH, dialogY + DIALOG_HEIGHT, 0xFF4A4A4A);
         
+        super.render(graphics, mouseX, mouseY, partialTick);
+        
         graphics.drawString(
             this.font,
             this.getTitle().getString(),
@@ -93,8 +95,6 @@ public class ConfirmationDialog extends Screen {
             );
             textY += 12;
         }
-        
-        super.render(graphics, mouseX, mouseY, partialTick);
     }
     
     private String[] wrapText(String text, int maxWidth) {
