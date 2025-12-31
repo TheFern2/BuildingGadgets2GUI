@@ -31,7 +31,8 @@ public class SchematicsTab extends TabPanel {
     private ClipboardUtils.CopyData copyData = new ClipboardUtils.CopyData();
     private SchematicsList schematicsList;
     private SchematicFile selectedFile = null;
-    private Button backButton;
+    private Button rootButton;
+    private Button upButton;
     private Button createFolderButton;
     private Button saveButton;
     private Button deleteButton;
@@ -54,20 +55,31 @@ public class SchematicsTab extends TabPanel {
         .bounds(x + PADDING, buttonY, 120, 20)
         .build());
         
-        backButton = Button.builder(
-            Component.literal("← Back"),
+        int navButtonY = buttonY + 25;
+        int navButtonWidth = 38;
+        
+        rootButton = Button.builder(
+            Component.literal("/"),
+            button -> onRootPressed()
+        )
+        .bounds(x + PADDING, navButtonY, navButtonWidth, 20)
+        .build();
+        widgets.add(rootButton);
+        
+        upButton = Button.builder(
+            Component.literal("↑"),
             button -> onBackPressed()
         )
-        .bounds(x + PADDING + 125, buttonY, 60, 20)
+        .bounds(x + PADDING + navButtonWidth + 2, navButtonY, navButtonWidth, 20)
         .build();
-        backButton.active = false;
-        widgets.add(backButton);
+        upButton.active = false;
+        widgets.add(upButton);
         
         createFolderButton = Button.builder(
-            Component.literal("📁"),
+            Component.literal("+"),
             button -> onCreateFolderPressed()
         )
-        .bounds(x + PADDING + 190, buttonY, 20, 20)
+        .bounds(x + PADDING + (navButtonWidth + 2) * 2, navButtonY, navButtonWidth, 20)
         .build();
         widgets.add(createFolderButton);
         
@@ -79,7 +91,7 @@ public class SchematicsTab extends TabPanel {
         .build();
         widgets.add(saveButton);
         
-        int listY = y + 30;
+        int listY = y + 55;
         schematicsList = new SchematicsList(
             Minecraft.getInstance(),
             LIST_WIDTH,
@@ -92,7 +104,7 @@ public class SchematicsTab extends TabPanel {
         
         int buttonX = x + PADDING + LIST_WIDTH + PADDING + 5;
         int buttonWidth = INFO_PANEL_WIDTH - 10;
-        int infoButtonY = y + 30 + LIST_HEIGHT + 10;
+        int infoButtonY = y + 55 + LIST_HEIGHT + 10;
         
         deleteButton = Button.builder(
             Component.literal("Delete"),
@@ -118,7 +130,7 @@ public class SchematicsTab extends TabPanel {
         super.onTabActivated();
         if (schematicsList != null) {
             schematicsList.refreshList();
-            updateBackButton();
+            updateNavigationButtons();
             updateActionButtons();
         }
     }
@@ -128,7 +140,7 @@ public class SchematicsTab extends TabPanel {
         if (!isActive) return;
         
         int listX = x + PADDING;
-        int listY = y + 30;
+        int listY = y + 55;
         
         guiGraphics.fill(listX, listY, listX + LIST_WIDTH, listY + LIST_HEIGHT, 0xFF202020);
         
@@ -151,7 +163,7 @@ public class SchematicsTab extends TabPanel {
     
     private void renderInfoPanel(GuiGraphics guiGraphics) {
         int infoX = x + PADDING + LIST_WIDTH + PADDING;
-        int infoY = y + 30;
+        int infoY = y + 55;
         
         guiGraphics.fill(infoX, infoY, infoX + INFO_PANEL_WIDTH, infoY + LIST_HEIGHT, 0xFF2A2A2A);
         
@@ -268,8 +280,14 @@ public class SchematicsTab extends TabPanel {
     
     public void onNavigate() {
         selectedFile = null;
-        updateBackButton();
+        updateNavigationButtons();
         updateActionButtons();
+    }
+    
+    private void onRootPressed() {
+        SchematicManager.navigateToRoot();
+        schematicsList.refreshList();
+        onNavigate();
     }
     
     private void onBackPressed() {
@@ -277,7 +295,7 @@ public class SchematicsTab extends TabPanel {
         schematicsList.refreshList();
         onNavigate();
     }
-
+    
     private void onCreateFolderPressed() {
         CreateFolderDialog dialog = new CreateFolderDialog(
             parentScreen,
@@ -285,13 +303,15 @@ public class SchematicsTab extends TabPanel {
             () -> System.out.println("Folder creation cancelled")
         );
         Minecraft.getInstance().setScreen(dialog);
-    }   
-
+    }
+    
     private void onCreateFolderConfirmed(String folderName) {
         boolean success = SchematicManager.createFolder(folderName);
         if (success) {
             System.out.println("Created folder: " + folderName);
-            schematicsList.refreshList();
+            if (schematicsList != null) {
+                schematicsList.refreshList();
+            }
         } else {
             System.err.println("Failed to create folder: " + folderName);
         }
@@ -381,9 +401,12 @@ public class SchematicsTab extends TabPanel {
         Minecraft.getInstance().setScreen(dialog);
     }
     
-    private void updateBackButton() {
-        if (backButton != null) {
-            backButton.active = !SchematicManager.isAtRoot();
+    private void updateNavigationButtons() {
+        if (rootButton != null) {
+            rootButton.active = !SchematicManager.isAtRoot();
+        }
+        if (upButton != null) {
+            upButton.active = !SchematicManager.isAtRoot();
         }
     }
     
@@ -418,3 +441,4 @@ public class SchematicsTab extends TabPanel {
         copyData = ClipboardUtils.checkCopyData();
     }
 }
+
