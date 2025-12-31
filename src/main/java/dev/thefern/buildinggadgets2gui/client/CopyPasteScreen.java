@@ -24,6 +24,9 @@ public class CopyPasteScreen extends Screen {
     
     private boolean hasCopyData = false;
     private int blockCount = 0;
+    private UUID gadgetUUID = null;
+    private UUID copyUUID = null;
+    private ArrayList<StatePos> copiedBlocks = null;
     
     public CopyPasteScreen() {
         super(Component.literal("Copy/Paste Tool Manager"));
@@ -71,14 +74,21 @@ public class CopyPasteScreen extends Screen {
         if (mc.player == null || mc.level == null) {
             hasCopyData = false;
             blockCount = 0;
+            gadgetUUID = null;
+            copyUUID = null;
+            copiedBlocks = null;
             return;
         }
         
         ItemStack heldItem = mc.player.getMainHandItem();
         
         if (heldItem.getItem() instanceof GadgetCopyPaste) {
-            UUID gadgetUUID = GadgetNBT.getUUID(heldItem);
-            ArrayList<StatePos> copiedBlocks = BG2DataClient.getLookupFromUUID(gadgetUUID);
+            gadgetUUID = GadgetNBT.getUUID(heldItem);
+            copyUUID = GadgetNBT.hasCopyUUID(heldItem) ? GadgetNBT.getCopyUUID(heldItem) : null;
+            
+            BG2DataClient.isClientUpToDate(heldItem);
+            
+            copiedBlocks = BG2DataClient.getLookupFromUUID(gadgetUUID);
             
             if (copiedBlocks != null && !copiedBlocks.isEmpty()) {
                 hasCopyData = true;
@@ -86,10 +96,14 @@ public class CopyPasteScreen extends Screen {
             } else {
                 hasCopyData = false;
                 blockCount = 0;
+                copiedBlocks = null;
             }
         } else {
             hasCopyData = false;
             blockCount = 0;
+            gadgetUUID = null;
+            copyUUID = null;
+            copiedBlocks = null;
         }
     }
     
@@ -98,6 +112,8 @@ public class CopyPasteScreen extends Screen {
         System.out.println("Test button pressed!");
         System.out.println("Has copy data: " + hasCopyData);
         System.out.println("Block count: " + blockCount);
+        System.out.println("Gadget UUID: " + (gadgetUUID != null ? gadgetUUID.toString().substring(0, 8) + "..." : "null"));
+        System.out.println("Copy UUID: " + (copyUUID != null ? copyUUID.toString().substring(0, 8) + "..." : "null"));
         System.out.println("==============================================");
     }
     
@@ -117,15 +133,18 @@ public class CopyPasteScreen extends Screen {
             false
         );
         
+        int yOffset = 40;
+        
         String statusText = "Copy Data Status: " + (hasCopyData ? "YES" : "NO");
         guiGraphics.drawString(
             this.font,
             statusText,
             leftPos + 20,
-            topPos + 40,
+            topPos + yOffset,
             hasCopyData ? 0x00FF00 : 0xFF0000,
             false
         );
+        yOffset += 20;
         
         if (hasCopyData) {
             String countText = "Blocks: " + blockCount;
@@ -133,11 +152,42 @@ public class CopyPasteScreen extends Screen {
                 this.font,
                 countText,
                 leftPos + 20,
-                topPos + 60,
+                topPos + yOffset,
                 0xFFFFFF,
                 false
             );
+            yOffset += 15;
+            
+            if (gadgetUUID != null) {
+                String gadgetText = "Gadget: " + formatUUID(gadgetUUID);
+                guiGraphics.drawString(
+                    this.font,
+                    gadgetText,
+                    leftPos + 20,
+                    topPos + yOffset,
+                    0xAAAAAA,
+                    false
+                );
+                yOffset += 12;
+            }
+            
+            if (copyUUID != null) {
+                String copyText = "Copy: " + formatUUID(copyUUID);
+                guiGraphics.drawString(
+                    this.font,
+                    copyText,
+                    leftPos + 20,
+                    topPos + yOffset,
+                    0xAAAAAA,
+                    false
+                );
+            }
         }
+    }
+    
+    private String formatUUID(UUID uuid) {
+        if (uuid == null) return "null";
+        return uuid.toString().substring(0, 8) + "...";
     }
     
     @Override
