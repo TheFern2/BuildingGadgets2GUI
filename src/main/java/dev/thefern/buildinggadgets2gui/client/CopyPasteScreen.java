@@ -199,15 +199,18 @@ public class CopyPasteScreen extends Screen {
         UUID targetGadgetUUID = GadgetNBT.getUUID(heldItem);
         UUID newCopyUUID = UUID.randomUUID();
         
+        System.out.println("==============================================");
+        System.out.println("[CLIENT] Sending clipboard data to server...");
+        System.out.println("Target Gadget UUID: " + targetGadgetUUID.toString().substring(0, 8) + "...");
+        System.out.println("New Copy UUID: " + newCopyUUID.toString().substring(0, 8) + "...");
+        System.out.println("Blocks to send: " + clipboardBlocks.size());
+        
         CompoundTag tag = BG2Data.statePosListToNBTMapArray(clipboardBlocks);
+        System.out.println("NBT Tag size: " + tag.size());
         
         PacketDistributor.sendToServer(new SendClipboardToGadgetPayload(targetGadgetUUID, newCopyUUID, tag));
         
-        System.out.println("==============================================");
-        System.out.println("Sent clipboard data to tool!");
-        System.out.println("Target Gadget UUID: " + targetGadgetUUID.toString().substring(0, 8) + "...");
-        System.out.println("New Copy UUID: " + newCopyUUID.toString().substring(0, 8) + "...");
-        System.out.println("Blocks sent: " + clipboardBlocks.size());
+        System.out.println("Packet sent to server!");
         System.out.println("==============================================");
     }
     
