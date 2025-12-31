@@ -26,10 +26,6 @@ public class DebugTab extends TabPanel {
     private UUID copyUUID = null;
     private ArrayList<StatePos> copiedBlocks = null;
     
-    private static ArrayList<StatePos> clipboardBlocks = null;
-    private static UUID clipboardCopyUUID = null;
-    private static int clipboardBlockCount = 0;
-    
     public DebugTab(Screen parentScreen, int x, int y, int width, int height) {
         super(parentScreen, x, y, width, height);
     }
@@ -196,12 +192,15 @@ public class DebugTab extends TabPanel {
             return;
         }
         
-        clipboardBlocks = new ArrayList<>();
+        ArrayList<StatePos> clipboardBlocks = new ArrayList<>();
         for (StatePos statePos : copiedBlocks) {
             clipboardBlocks.add(new StatePos(statePos.state, statePos.pos.immutable()));
         }
-        clipboardCopyUUID = copyUUID;
-        clipboardBlockCount = clipboardBlocks.size();
+        UUID clipboardCopyUUID = copyUUID;
+        int clipboardBlockCount = clipboardBlocks.size();
+        
+        HistoryTab.setClipboard(clipboardBlocks, clipboardCopyUUID, clipboardBlockCount);
+        HistoryTab.addToHistory(clipboardBlocks, clipboardCopyUUID, clipboardBlockCount);
         
         System.out.println("==============================================");
         System.out.println("Copied data from tool to clipboard!");
@@ -220,6 +219,7 @@ public class DebugTab extends TabPanel {
             return;
         }
         
+        ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
         if (clipboardBlocks == null || clipboardBlocks.isEmpty()) {
             System.out.println("Clipboard is empty! Use 'Copy from Tool' first.");
             return;
@@ -244,6 +244,10 @@ public class DebugTab extends TabPanel {
     }
     
     private void onPrintClipboard() {
+        ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
+        UUID clipboardCopyUUID = HistoryTab.getClipboardCopyUUID();
+        int clipboardBlockCount = HistoryTab.getClipboardBlockCount();
+        
         System.out.println("==============================================");
         System.out.println("Clipboard Data:");
         
@@ -268,9 +272,7 @@ public class DebugTab extends TabPanel {
     }
     
     private void onClearClipboard() {
-        clipboardBlocks = null;
-        clipboardCopyUUID = null;
-        clipboardBlockCount = 0;
+        HistoryTab.setClipboard(null, null, 0);
         
         System.out.println("==============================================");
         System.out.println("Clipboard cleared!");

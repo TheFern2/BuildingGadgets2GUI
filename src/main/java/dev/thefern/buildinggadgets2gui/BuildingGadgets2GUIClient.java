@@ -1,5 +1,7 @@
 package dev.thefern.buildinggadgets2gui;
 
+import dev.thefern.buildinggadgets2gui.client.HistoryManager;
+import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -27,5 +29,11 @@ public class BuildingGadgets2GUIClient {
         BuildingGadgets2GUI.LOGGER.info("HELLO FROM CLIENT SETUP");
         BuildingGadgets2GUI.LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
         BuildingGadgets2GUI.LOGGER.info("Initializing CopyPasteDataMonitor for BuildingGadgets2 integration");
+        
+        event.enqueueWork(() -> {
+            HistoryManager.init();
+            HistoryTab.loadHistory();
+            BuildingGadgets2GUI.LOGGER.info("History system initialized and loaded");
+        });
     }
 }

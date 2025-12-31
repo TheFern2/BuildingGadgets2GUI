@@ -5,6 +5,7 @@ import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
 import com.direwolf20.buildinggadgets2.util.GadgetNBT;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
 import dev.thefern.buildinggadgets2gui.Config;
+import dev.thefern.buildinggadgets2gui.client.HistoryManager;
 import dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -53,6 +54,13 @@ public class HistoryTab extends TabPanel {
             this.blockCount = blockCount;
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
             this.timestamp = sdf.format(new Date());
+        }
+        
+        public HistoryEntry(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount, String timestamp) {
+            this.blocks = blocks;
+            this.copyUUID = copyUUID;
+            this.blockCount = blockCount;
+            this.timestamp = timestamp;
         }
     }
     
@@ -228,6 +236,7 @@ public class HistoryTab extends TabPanel {
         HistoryEntry entry = copyHistory.remove(index);
         System.out.println("Deleted history entry: [" + entry.timestamp + "] " + entry.blockCount + " blocks");
         
+        HistoryManager.saveHistory(copyHistory);
         updateButtonVisibility();
     }
     
@@ -238,6 +247,7 @@ public class HistoryTab extends TabPanel {
         
         System.out.println("Cleared all history (" + count + " entries)");
         
+        HistoryManager.saveHistory(copyHistory);
         updateButtonVisibility();
     }
     
@@ -276,14 +286,29 @@ public class HistoryTab extends TabPanel {
         trimHistoryToLimit();
         
         System.out.println("Added to history (total entries: " + copyHistory.size() + ")");
+        
+        HistoryManager.saveHistory(copyHistory);
     }
     
     public static void trimHistoryToLimit() {
         int maxEntries = Config.MAX_HISTORY_ENTRIES.get();
+        boolean removed = false;
         while (copyHistory.size() > maxEntries) {
-            HistoryEntry removed = copyHistory.remove(copyHistory.size() - 1);
-            System.out.println("Removed oldest history entry: [" + removed.timestamp + "] " + removed.blockCount + " blocks (FIFO limit: " + maxEntries + ")");
+            HistoryEntry removedEntry = copyHistory.remove(copyHistory.size() - 1);
+            System.out.println("Removed oldest history entry: [" + removedEntry.timestamp + "] " + removedEntry.blockCount + " blocks (FIFO limit: " + maxEntries + ")");
+            removed = true;
         }
+        if (removed) {
+            HistoryManager.saveHistory(copyHistory);
+        }
+    }
+    
+    public static void loadHistory() {
+        List<HistoryEntry> loadedHistory = HistoryManager.loadHistory();
+        copyHistory.clear();
+        copyHistory.addAll(loadedHistory);
+        trimHistoryToLimit();
+        System.out.println("History loaded: " + copyHistory.size() + " entries");
     }
     
     public static void setClipboard(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount) {
