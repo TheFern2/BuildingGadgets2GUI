@@ -12,7 +12,7 @@ This document describes how to integrate with BuildingGadgets2's Copy Paste Gadg
    - Extends `BaseGadget`
    - Has two modes: "copy" and "paste"
 
-2. **BG2Data** (`com.direwolf20.buildinggadgers2.common.worlddata.BG2Data`)
+2. **BG2Data** (`com.direwolf20.buildinggadgets2.common.worlddata.BG2Data`)
    - Server-side SavedData that stores copied blocks
    - Uses UUID-based lookup: `HashMap<UUID, ArrayList<StatePos>>`
    - Methods:

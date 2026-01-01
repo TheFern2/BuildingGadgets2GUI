@@ -127,7 +127,7 @@ To extend this integration, you could:
 If the detection doesn't work:
 
 1. **Check BuildingGadgets2 is loaded**
-   - Look for "buildinggadgers2" in the mods list
+   - Look for "buildinggadgets2" in the mods list
    - Verify the jar is in the run/mods folder
 
 2. **Check the gadget mode**

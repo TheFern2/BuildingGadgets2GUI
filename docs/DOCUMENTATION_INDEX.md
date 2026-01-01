@@ -36,7 +36,7 @@ The `dev/` directory contains comprehensive technical documentation for integrat
 ---
 
 ### Integration Guide
-**File**: [dev/BUILDINGGADGETS2_INTEGRATION.md](dev/BUILDINGGADGERS2_INTEGRATION.md)  
+**File**: [dev/BUILDINGGADGETS2_INTEGRATION.md](dev/BUILDINGGADGETS2_INTEGRATION.md)  
 **Purpose**: High-level architecture and integration approaches  
 **Use when**: Starting a new integration or understanding the system
 
@@ -119,7 +119,7 @@ The `dev/` directory contains comprehensive technical documentation for integrat
 ### For New Developers
 
 1. **Read**: [dev/README.md](dev/README.md) - Start here for navigation
-2. **Understand**: [dev/BUILDINGGADGETS2_INTEGRATION.md](dev/BUILDINGGADGERS2_INTEGRATION.md) - Learn the architecture
+2. **Understand**: [dev/BUILDINGGADGETS2_INTEGRATION.md](dev/BUILDINGGADGETS2_INTEGRATION.md) - Learn the architecture
 3. **Reference**: [dev/QUICK_REFERENCE.md](dev/QUICK_REFERENCE.md) - Bookmark for quick lookups
 4. **Code**: [dev/CODE_EXAMPLES.md](dev/CODE_EXAMPLES.md) - Copy working examples
 5. **Deep Dive**: [dev/COPYPASTE_INTERNAL_REFERENCE.md](dev/COPYPASTE_INTERNAL_REFERENCE.md) - When you need details
@@ -128,7 +128,7 @@ The `dev/` directory contains comprehensive technical documentation for integrat
 
 | Task | Primary Document | Supporting Documents |
 |------|-----------------|---------------------|
-| Detect copy operations | [CODE_EXAMPLES.md](dev/CODE_EXAMPLES.md) → Basic Detection | [BUILDINGGADGERS2_INTEGRATION.md](dev/BUILDINGGADGERS2_INTEGRATION.md) → Events |
+| Detect copy operations | [CODE_EXAMPLES.md](dev/CODE_EXAMPLES.md) → Basic Detection | [BUILDINGGADGETS2_INTEGRATION.md](dev/BUILDINGGADGETS2_INTEGRATION.md) → Events |
 | Analyze copy data | [CODE_EXAMPLES.md](dev/CODE_EXAMPLES.md) → Data Analysis | [COPYPASTE_INTERNAL_REFERENCE.md](dev/COPYPASTE_INTERNAL_REFERENCE.md) → StatePos |
 | Create GUI features | [CODE_EXAMPLES.md](dev/CODE_EXAMPLES.md) → GUI Integration | [COPYPASTE_INTERNAL_REFERENCE.md](dev/COPYPASTE_INTERNAL_REFERENCE.md) → Integration Points |
 | Work with templates | [COPYPASTE_INTERNAL_REFERENCE.md](dev/COPYPASTE_INTERNAL_REFERENCE.md) → Template System | [QUICK_REFERENCE.md](dev/QUICK_REFERENCE.md) |
@@ -153,7 +153,7 @@ Copied blocks use positions **relative to the copy start**, not absolute world c
 ### Server-Side Operations
 All copy/paste data must be accessed server-side. Clients receive data via network packets.
 
-📖 Details: [BUILDINGGADGERS2_INTEGRATION.md](dev/BUILDINGGADGERS2_INTEGRATION.md) → Network Packets
+📖 Details: [BUILDINGGADGETS2_INTEGRATION.md](dev/BUILDINGGADGETS2_INTEGRATION.md) → Network Packets
 
 ### BG2Data Storage
 Copy data persists in world save files via the `BG2Data` class.
@@ -268,7 +268,7 @@ docs/
 └── dev/
     ├── README.md
     ├── QUICK_REFERENCE.md
-    ├── BUILDINGGADGERS2_INTEGRATION.md
+    ├── BUILDINGGADGETS2_INTEGRATION.md
     ├── COPYPASTE_INTERNAL_REFERENCE.md
     ├── CODE_EXAMPLES.md
     └── IMPLEMENTATION_SUMMARY.md

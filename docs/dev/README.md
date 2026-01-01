@@ -162,7 +162,7 @@ import com.direwolf20.buildinggadgets2.common.items.BaseGadget;
 
 // Data
 import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
-import com.direwolf20.buildinggadgers2.util.datatypes.StatePos;
+import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
 
 // Utilities
 import com.direwolf20.buildinggadgets2.util.GadgetNBT;
@@ -287,7 +287,7 @@ When adding new documentation:
 docs/dev/
 ├── README.md (this file)
 ├── QUICK_REFERENCE.md
-├── BUILDINGGADGERS2_INTEGRATION.md
+├── BUILDINGGADGETS2_INTEGRATION.md
 ├── COPYPASTE_INTERNAL_REFERENCE.md
 ├── CODE_EXAMPLES.md
 └── IMPLEMENTATION_SUMMARY.md

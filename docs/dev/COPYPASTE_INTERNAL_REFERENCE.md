@@ -154,7 +154,7 @@ for (StatePos statePos : list) {
 ---
 
 ### 4. BG2Data (Server-Side Storage)
-**Package**: `com.direwolf20.buildinggadgers2.common.worlddata`
+**Package**: `com.direwolf20.buildinggadgets2.common.worlddata`
 
 **Storage Structure**:
 ```java
