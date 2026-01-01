@@ -34,6 +34,7 @@ public class SchematicsTab extends TabPanel {
     private Button rootButton;
     private Button upButton;
     private Button createFolderButton;
+    private Button copyFromToolButton;
     private Button saveButton;
     private Button deleteButton;
     private Button sendToToolButton;
@@ -48,12 +49,17 @@ public class SchematicsTab extends TabPanel {
         
         int buttonY = y + 5;
         
-        widgets.add(Button.builder(
+        copyFromToolButton = Button.builder(
             Component.literal("Copy from Tool"),
             button -> ClipboardUtils.copyFromTool()
         )
         .bounds(x + PADDING, buttonY, 120, 20)
-        .build());
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Copy blocks with the BG2 Copy and Paste tool")
+        ))
+        .build();
+        copyFromToolButton.active = copyData.hasCopyData;
+        widgets.add(copyFromToolButton);
         
         int navButtonY = buttonY + 25;
         int navButtonWidth = 38;
@@ -63,6 +69,9 @@ public class SchematicsTab extends TabPanel {
             button -> onRootPressed()
         )
         .bounds(x + PADDING, navButtonY, navButtonWidth, 20)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Root folder")
+        ))
         .build();
         widgets.add(rootButton);
         
@@ -71,6 +80,9 @@ public class SchematicsTab extends TabPanel {
             button -> onBackPressed()
         )
         .bounds(x + PADDING + navButtonWidth + 2, navButtonY, navButtonWidth, 20)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Back")
+        ))
         .build();
         upButton.active = false;
         widgets.add(upButton);
@@ -80,6 +92,9 @@ public class SchematicsTab extends TabPanel {
             button -> onCreateFolderPressed()
         )
         .bounds(x + PADDING + (navButtonWidth + 2) * 2, navButtonY, navButtonWidth, 20)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Create new folder")
+        ))
         .build();
         widgets.add(createFolderButton);
         
@@ -116,7 +131,7 @@ public class SchematicsTab extends TabPanel {
         widgets.add(deleteButton);
         
         sendToToolButton = Button.builder(
-            Component.literal("SD to Tool"),
+            Component.literal("Send to Tool"),
             button -> onSendToToolPressed()
         )
         .bounds(buttonX, infoButtonY + 24, buttonWidth, 20)
@@ -439,6 +454,9 @@ public class SchematicsTab extends TabPanel {
     @Override
     public void tick() {
         copyData = ClipboardUtils.checkCopyData();
+        if (copyFromToolButton != null) {
+            copyFromToolButton.active = copyData.hasCopyData;
+        }
     }
 }
 

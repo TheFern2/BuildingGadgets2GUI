@@ -1,25 +1,17 @@
+# BuildingGadgets2 GUI Mod
 
-Installation information
-=======
+This is a mod to enhance schematics (templates) functionality by adding a gui to interact with the Bg2 Copy and Paste tool and within this mod gui you can save and load from disk. This way you can reuse schematics between worlds.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+> NB: You need to have Bg2 installed, this mod does not replace Bg2!
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+# Screenshots
+![](docs/images/schematics.png)
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+![](docs/images/schematics1.png)
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+![](docs/images/history.png)
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+# Contact
+
+Please send feedback, ideas, to fernandobe+mc@protonmail.com
+if you have github open issues here, if not also use email.
