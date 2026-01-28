@@ -27,5 +27,17 @@ public class BuildingGadgets2GUI {
             dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload.STREAM_CODEC,
             dev.thefern.buildinggadgets2gui.network.PacketSendClipboardToGadget.get()::handle
         );
+        
+        registrar.playToServer(
+            dev.thefern.buildinggadgets2gui.network.RequestTEDataPayload.TYPE,
+            dev.thefern.buildinggadgets2gui.network.RequestTEDataPayload.STREAM_CODEC,
+            dev.thefern.buildinggadgets2gui.network.PacketRequestTEData.get()::handle
+        );
+        
+        registrar.playToClient(
+            dev.thefern.buildinggadgets2gui.network.SendTEDataPayload.TYPE,
+            dev.thefern.buildinggadgets2gui.network.SendTEDataPayload.STREAM_CODEC,
+            dev.thefern.buildinggadgets2gui.network.PacketSendTEData.get()::handle
+        );
     }
 }

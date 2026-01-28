@@ -1,6 +1,7 @@
 package dev.thefern.buildinggadgets2gui.client.tabs;
 
 import dev.thefern.buildinggadgets2gui.client.ClipboardUtils;
+import dev.thefern.buildinggadgets2gui.client.TEDataClientCache;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.CreateFolderDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.SaveSchematicDialog;
@@ -9,6 +10,7 @@ import dev.thefern.buildinggadgets2gui.client.schematics.SchematicFolder;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicManager;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicsList;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import com.direwolf20.buildinggadgets2.util.datatypes.TagPos;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -55,7 +57,7 @@ public class SchematicsTab extends TabPanel {
         )
         .bounds(x + PADDING, buttonY, 120, 20)
         .tooltip(net.minecraft.client.gui.components.Tooltip.create(
-            Component.literal("Copy blocks with the BG2 Copy and Paste tool")
+            Component.literal("Copy blocks and TileEntity data from BG2 Copy/Paste tool")
         ))
         .build();
         copyFromToolButton.active = copyData.hasCopyData;
@@ -334,6 +336,7 @@ public class SchematicsTab extends TabPanel {
     
     private void onSavePressed() {
         ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
+        ArrayList<TagPos> clipboardTEData = HistoryTab.getClipboardTEData();
         UUID clipboardCopyUUID = HistoryTab.getClipboardCopyUUID();
         
         if (clipboardBlocks == null || clipboardBlocks.isEmpty()) {
@@ -343,13 +346,13 @@ public class SchematicsTab extends TabPanel {
         
         SaveSchematicDialog dialog = new SaveSchematicDialog(
             parentScreen,
-            result -> onSaveConfirmed(result, clipboardBlocks, clipboardCopyUUID),
+            result -> onSaveConfirmed(result, clipboardBlocks, clipboardTEData, clipboardCopyUUID),
             v -> System.out.println("Save cancelled")
         );
         Minecraft.getInstance().setScreen(dialog);
     }
     
-    private void onSaveConfirmed(SaveSchematicDialog.SaveResult result, ArrayList<StatePos> blocks, UUID copyUUID) {
+    private void onSaveConfirmed(SaveSchematicDialog.SaveResult result, ArrayList<StatePos> blocks, ArrayList<TagPos> teData, UUID copyUUID) {
         File file = SchematicManager.createSchematicFile(result.name);
         String author = Minecraft.getInstance().getUser().getName();
         
@@ -359,12 +362,13 @@ public class SchematicsTab extends TabPanel {
             result.description,
             result.tags,
             blocks,
+            teData,
             copyUUID,
             author
         );
         
         if (success) {
-            System.out.println("Schematic saved: " + file.getName());
+            System.out.println("Schematic saved: " + file.getName() + " (TileEntities: " + (teData != null ? teData.size() : 0) + ")");
             schematicsList.refreshList();
         } else {
             System.err.println("Failed to save schematic!");
@@ -406,6 +410,7 @@ public class SchematicsTab extends TabPanel {
                     SchematicFile.SchematicData data = selectedFile.loadData();
                     if (data != null && data.blocks != null) {
                         HistoryTab.setClipboard(data.blocks, 
+                            data.teData,
                             data.copyUUID != null ? UUID.fromString(data.copyUUID) : null, 
                             data.blockCount);
                         ClipboardUtils.sendToTool();
@@ -456,6 +461,13 @@ public class SchematicsTab extends TabPanel {
         copyData = ClipboardUtils.checkCopyData();
         if (copyFromToolButton != null) {
             copyFromToolButton.active = copyData.hasCopyData;
+        }
+        
+        if (copyData.hasCopyData && copyData.gadgetUUID != null) {
+            if (!TEDataClientCache.hasTEData(copyData.gadgetUUID) && 
+                !TEDataClientCache.isPendingRequest(copyData.gadgetUUID)) {
+                ClipboardUtils.requestTEDataFromServer();
+            }
         }
     }
 }

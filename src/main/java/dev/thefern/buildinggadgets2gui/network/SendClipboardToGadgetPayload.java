@@ -14,7 +14,8 @@ import java.util.UUID;
 public record SendClipboardToGadgetPayload(
         UUID gadgetUUID,
         UUID copyUUID,
-        CompoundTag tag
+        CompoundTag tag,
+        CompoundTag teDataTag
 ) implements CustomPacketPayload {
     public static final Type<SendClipboardToGadgetPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(BuildingGadgets2GUI.MODID, "send_clipboard_to_gadget"));
 
@@ -27,6 +28,7 @@ public record SendClipboardToGadgetPayload(
             UUIDUtil.STREAM_CODEC, SendClipboardToGadgetPayload::gadgetUUID,
             UUIDUtil.STREAM_CODEC, SendClipboardToGadgetPayload::copyUUID,
             ByteBufCodecs.COMPOUND_TAG, SendClipboardToGadgetPayload::tag,
+            ByteBufCodecs.COMPOUND_TAG, SendClipboardToGadgetPayload::teDataTag,
             SendClipboardToGadgetPayload::new
     );
 }

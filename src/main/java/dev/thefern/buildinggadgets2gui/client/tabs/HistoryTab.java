@@ -4,6 +4,7 @@ import com.direwolf20.buildinggadgets2.common.items.GadgetCopyPaste;
 import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
 import com.direwolf20.buildinggadgets2.util.GadgetNBT;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import com.direwolf20.buildinggadgets2.util.datatypes.TagPos;
 import dev.thefern.buildinggadgets2gui.Config;
 import dev.thefern.buildinggadgets2gui.client.HistoryManager;
 import dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload;
@@ -30,6 +31,7 @@ public class HistoryTab extends TabPanel {
     private static final int MAX_HISTORY_BUTTONS = 20;
     
     private static ArrayList<StatePos> clipboardBlocks = null;
+    private static ArrayList<TagPos> clipboardTEData = null;
     private static UUID clipboardCopyUUID = null;
     private static int clipboardBlockCount = 0;
     
@@ -44,12 +46,23 @@ public class HistoryTab extends TabPanel {
     
     public static class HistoryEntry {
         public ArrayList<StatePos> blocks;
+        public ArrayList<TagPos> teData;
         public UUID copyUUID;
         public int blockCount;
         public String timestamp;
         
         public HistoryEntry(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount) {
             this.blocks = blocks;
+            this.teData = null;
+            this.copyUUID = copyUUID;
+            this.blockCount = blockCount;
+            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+            this.timestamp = sdf.format(new Date());
+        }
+        
+        public HistoryEntry(ArrayList<StatePos> blocks, ArrayList<TagPos> teData, UUID copyUUID, int blockCount) {
+            this.blocks = blocks;
+            this.teData = teData;
             this.copyUUID = copyUUID;
             this.blockCount = blockCount;
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
@@ -58,6 +71,15 @@ public class HistoryTab extends TabPanel {
         
         public HistoryEntry(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount, String timestamp) {
             this.blocks = blocks;
+            this.teData = null;
+            this.copyUUID = copyUUID;
+            this.blockCount = blockCount;
+            this.timestamp = timestamp;
+        }
+        
+        public HistoryEntry(ArrayList<StatePos> blocks, ArrayList<TagPos> teData, UUID copyUUID, int blockCount, String timestamp) {
+            this.blocks = blocks;
+            this.teData = teData;
             this.copyUUID = copyUUID;
             this.blockCount = blockCount;
             this.timestamp = timestamp;
@@ -263,6 +285,13 @@ public class HistoryTab extends TabPanel {
         for (StatePos statePos : entry.blocks) {
             clipboardBlocks.add(new StatePos(statePos.state, statePos.pos.immutable()));
         }
+        
+        if (entry.teData != null && !entry.teData.isEmpty()) {
+            clipboardTEData = new ArrayList<>(entry.teData);
+        } else {
+            clipboardTEData = null;
+        }
+        
         clipboardCopyUUID = entry.copyUUID;
         clipboardBlockCount = entry.blockCount;
         
@@ -270,14 +299,25 @@ public class HistoryTab extends TabPanel {
         System.out.println("Sent history entry #" + (index + 1) + " to clipboard");
         System.out.println("Timestamp: " + entry.timestamp);
         System.out.println("Blocks: " + clipboardBlockCount);
+        System.out.println("TileEntities: " + (clipboardTEData != null ? clipboardTEData.size() : 0));
         System.out.println("Copy UUID: " + (clipboardCopyUUID != null ? clipboardCopyUUID.toString().substring(0, 8) + "..." : "null"));
         System.out.println("Use 'Send to Tool' in Schematics tab to apply to gadget");
         System.out.println("==============================================");
     }
     
     public static void addToHistory(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount) {
+        addToHistory(blocks, null, copyUUID, blockCount);
+    }
+    
+    public static void addToHistory(ArrayList<StatePos> blocks, ArrayList<TagPos> teData, UUID copyUUID, int blockCount) {
+        ArrayList<TagPos> teDataCopy = null;
+        if (teData != null && !teData.isEmpty()) {
+            teDataCopy = new ArrayList<>(teData);
+        }
+        
         HistoryEntry newEntry = new HistoryEntry(
             new ArrayList<>(blocks),
+            teDataCopy,
             copyUUID,
             blockCount
         );
@@ -285,7 +325,7 @@ public class HistoryTab extends TabPanel {
         
         trimHistoryToLimit();
         
-        System.out.println("Added to history (total entries: " + copyHistory.size() + ")");
+        System.out.println("Added to history (total entries: " + copyHistory.size() + ", TileEntities: " + (teDataCopy != null ? teDataCopy.size() : 0) + ")");
         
         HistoryManager.saveHistory(copyHistory);
     }
@@ -312,13 +352,22 @@ public class HistoryTab extends TabPanel {
     }
     
     public static void setClipboard(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount) {
+        setClipboard(blocks, null, copyUUID, blockCount);
+    }
+    
+    public static void setClipboard(ArrayList<StatePos> blocks, ArrayList<TagPos> teData, UUID copyUUID, int blockCount) {
         clipboardBlocks = blocks;
+        clipboardTEData = teData;
         clipboardCopyUUID = copyUUID;
         clipboardBlockCount = blockCount;
     }
     
     public static ArrayList<StatePos> getClipboardBlocks() {
         return clipboardBlocks;
+    }
+    
+    public static ArrayList<TagPos> getClipboardTEData() {
+        return clipboardTEData;
     }
     
     public static UUID getClipboardCopyUUID() {

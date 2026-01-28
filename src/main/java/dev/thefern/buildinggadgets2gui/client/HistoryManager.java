@@ -1,6 +1,7 @@
 package dev.thefern.buildinggadgets2gui.client;
 
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import com.direwolf20.buildinggadgets2.util.datatypes.TagPos;
 import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -51,11 +52,19 @@ public class HistoryManager {
                 }
                 entryTag.put("blocks", blocksList);
                 
+                if (entry.teData != null && !entry.teData.isEmpty()) {
+                    ListTag teList = new ListTag();
+                    for (TagPos tagPos : entry.teData) {
+                        teList.add(tagPos.getTag());
+                    }
+                    entryTag.put("tedata", teList);
+                }
+                
                 historyList.add(entryTag);
             }
             
             rootTag.put("history", historyList);
-            rootTag.putInt("version", 1);
+            rootTag.putInt("version", 2);
             
             NbtIo.writeCompressed(rootTag, historyFile.toPath());
             System.out.println("Saved " + history.size() + " history entries to " + historyFile.getName());
@@ -101,7 +110,17 @@ public class HistoryManager {
                     blocks.add(new StatePos(blockTag));
                 }
                 
-                HistoryTab.HistoryEntry entry = new HistoryTab.HistoryEntry(blocks, copyUUID, blockCount, timestamp);
+                ArrayList<TagPos> teData = null;
+                if (entryTag.contains("tedata")) {
+                    teData = new ArrayList<>();
+                    ListTag teList = entryTag.getList("tedata", Tag.TAG_COMPOUND);
+                    for (int j = 0; j < teList.size(); j++) {
+                        TagPos tagPos = new TagPos(teList.getCompound(j));
+                        teData.add(tagPos);
+                    }
+                }
+                
+                HistoryTab.HistoryEntry entry = new HistoryTab.HistoryEntry(blocks, teData, copyUUID, blockCount, timestamp);
                 history.add(entry);
             }
             

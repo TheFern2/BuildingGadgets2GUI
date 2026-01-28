@@ -4,8 +4,11 @@ import com.direwolf20.buildinggadgets2.common.items.GadgetCopyPaste;
 import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
 import com.direwolf20.buildinggadgets2.util.GadgetNBT;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import com.direwolf20.buildinggadgets2.util.datatypes.TagPos;
 import dev.thefern.buildinggadgets2gui.BuildingGadgets2GUI;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -69,6 +72,22 @@ public class PacketSendClipboardToGadget {
             
             BuildingGadgets2GUI.LOGGER.info("Adding to BG2Data...");
             bg2Data.addToCopyPaste(gadgetUUID, buildList);
+            
+            CompoundTag teDataTag = payload.teDataTag();
+            if (teDataTag != null && teDataTag.contains("tedata")) {
+                ListTag teList = teDataTag.getList("tedata", Tag.TAG_COMPOUND);
+                ArrayList<TagPos> teData = new ArrayList<>();
+                for (int i = 0; i < teList.size(); i++) {
+                    TagPos tagPos = new TagPos(teList.getCompound(i));
+                    teData.add(tagPos);
+                }
+                if (!teData.isEmpty()) {
+                    bg2Data.addToTEMap(gadgetUUID, teData);
+                    BuildingGadgets2GUI.LOGGER.info("Added {} TileEntity entries to TEMap", teData.size());
+                }
+            } else {
+                BuildingGadgets2GUI.LOGGER.info("No TileEntity data in payload");
+            }
             
             BuildingGadgets2GUI.LOGGER.info("Setting copy UUID on gadget...");
             GadgetNBT.setCopyUUID(heldItem, payload.copyUUID());

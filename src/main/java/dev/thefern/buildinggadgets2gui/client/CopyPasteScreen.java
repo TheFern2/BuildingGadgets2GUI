@@ -208,7 +208,9 @@ public class CopyPasteScreen extends Screen {
         CompoundTag tag = BG2Data.statePosListToNBTMapArray(clipboardBlocks);
         System.out.println("NBT Tag size: " + tag.size());
         
-        PacketDistributor.sendToServer(new SendClipboardToGadgetPayload(targetGadgetUUID, newCopyUUID, tag));
+        CompoundTag teDataTag = new CompoundTag();
+        
+        PacketDistributor.sendToServer(new SendClipboardToGadgetPayload(targetGadgetUUID, newCopyUUID, tag, teDataTag));
         
         System.out.println("Packet sent to server!");
         System.out.println("==============================================");

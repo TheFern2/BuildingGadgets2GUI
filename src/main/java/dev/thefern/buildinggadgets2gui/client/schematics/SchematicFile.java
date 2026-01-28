@@ -2,11 +2,14 @@ package dev.thefern.buildinggadgets2gui.client.schematics;
 
 import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import com.direwolf20.buildinggadgets2.util.datatypes.TagPos;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.Tag;
 
 import java.io.File;
 import java.io.FileReader;
@@ -131,6 +134,15 @@ public class SchematicFile {
                 data.blocks = BG2Data.statePosListFromNBTMapArray(nbt.getCompound("blocks"));
             }
             
+            if (nbt.contains("tedata")) {
+                ListTag teList = nbt.getList("tedata", Tag.TAG_COMPOUND);
+                data.teData = new ArrayList<>();
+                for (int i = 0; i < teList.size(); i++) {
+                    TagPos tagPos = new TagPos(teList.getCompound(i));
+                    data.teData.add(tagPos);
+                }
+            }
+            
             return data;
         } catch (IOException e) {
             System.err.println("Failed to load schematic data: " + file.getName());
@@ -141,6 +153,11 @@ public class SchematicFile {
     
     public static boolean saveSchematic(File file, String name, String description, List<String> tags, 
                                        ArrayList<StatePos> blocks, UUID copyUUID, String author) {
+        return saveSchematic(file, name, description, tags, blocks, null, copyUUID, author);
+    }
+    
+    public static boolean saveSchematic(File file, String name, String description, List<String> tags, 
+                                       ArrayList<StatePos> blocks, ArrayList<TagPos> teData, UUID copyUUID, String author) {
         try {
             CompoundTag nbt = new CompoundTag();
             nbt.putInt("version", 1);
@@ -196,6 +213,14 @@ public class SchematicFile {
                 nbt.putString("copyUUID", copyUUID.toString());
             }
             
+            if (teData != null && !teData.isEmpty()) {
+                ListTag teList = new ListTag();
+                for (TagPos tagPos : teData) {
+                    teList.add(tagPos.getTag());
+                }
+                nbt.put("tedata", teList);
+            }
+            
             NbtIo.writeCompressed(nbt, file.toPath());
             return true;
         } catch (IOException e) {
@@ -212,6 +237,7 @@ public class SchematicFile {
         public int blockCount;
         public String copyUUID;
         public ArrayList<StatePos> blocks;
+        public ArrayList<TagPos> teData;
     }
     
     public static class SchematicMetadata {

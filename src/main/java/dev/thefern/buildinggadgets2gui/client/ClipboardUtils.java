@@ -5,10 +5,13 @@ import com.direwolf20.buildinggadgets2.common.worlddata.BG2Data;
 import com.direwolf20.buildinggadgets2.common.worlddata.BG2DataClient;
 import com.direwolf20.buildinggadgets2.util.GadgetNBT;
 import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
+import com.direwolf20.buildinggadgets2.util.datatypes.TagPos;
 import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
+import dev.thefern.buildinggadgets2gui.network.RequestTEDataPayload;
 import dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -23,6 +26,7 @@ public class ClipboardUtils {
         public UUID gadgetUUID = null;
         public UUID copyUUID = null;
         public ArrayList<StatePos> copiedBlocks = null;
+        public ArrayList<TagPos> copiedTEData = null;
     }
     
     public static CopyData checkCopyData() {
@@ -69,13 +73,47 @@ public class ClipboardUtils {
         UUID clipboardCopyUUID = data.copyUUID;
         int clipboardBlockCount = clipboardBlocks.size();
         
-        HistoryTab.setClipboard(clipboardBlocks, clipboardCopyUUID, clipboardBlockCount);
-        HistoryTab.addToHistory(clipboardBlocks, clipboardCopyUUID, clipboardBlockCount);
+        ArrayList<TagPos> teData = TEDataClientCache.getTEData(data.gadgetUUID);
+        ArrayList<TagPos> clipboardTEData = null;
+        if (teData != null && !teData.isEmpty()) {
+            clipboardTEData = new ArrayList<>(teData);
+        }
+        
+        HistoryTab.setClipboard(clipboardBlocks, clipboardTEData, clipboardCopyUUID, clipboardBlockCount);
+        HistoryTab.addToHistory(clipboardBlocks, clipboardTEData, clipboardCopyUUID, clipboardBlockCount);
         
         System.out.println("==============================================");
         System.out.println("Copied data from tool to clipboard!");
         System.out.println("Clipboard blocks: " + clipboardBlockCount);
+        System.out.println("Clipboard TileEntities: " + (clipboardTEData != null ? clipboardTEData.size() : 0));
         System.out.println("Clipboard Copy UUID: " + (clipboardCopyUUID != null ? clipboardCopyUUID.toString().substring(0, 8) + "..." : "null"));
+        System.out.println("==============================================");
+    }
+    
+    public static void requestTEDataFromServer() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return;
+        
+        ItemStack heldItem = mc.player.getMainHandItem();
+        if (!(heldItem.getItem() instanceof GadgetCopyPaste)) {
+            System.out.println("Not holding a Copy/Paste gadget!");
+            return;
+        }
+        
+        UUID gadgetUUID = GadgetNBT.getUUID(heldItem);
+        
+        if (TEDataClientCache.isPendingRequest(gadgetUUID)) {
+            System.out.println("Already waiting for TE data response for gadget: " + formatUUID(gadgetUUID));
+            return;
+        }
+        
+        System.out.println("==============================================");
+        System.out.println("[CLIENT] Requesting TE data from server for gadget: " + formatUUID(gadgetUUID));
+        
+        TEDataClientCache.markPendingRequest(gadgetUUID);
+        PacketDistributor.sendToServer(new RequestTEDataPayload(gadgetUUID));
+        
+        System.out.println("Request sent!");
         System.out.println("==============================================");
     }
     
@@ -107,7 +145,20 @@ public class ClipboardUtils {
         CompoundTag tag = BG2Data.statePosListToNBTMapArray(clipboardBlocks);
         System.out.println("NBT Tag size: " + tag.size());
         
-        PacketDistributor.sendToServer(new SendClipboardToGadgetPayload(targetGadgetUUID, newCopyUUID, tag));
+        CompoundTag teDataTag = new CompoundTag();
+        ArrayList<TagPos> clipboardTEData = HistoryTab.getClipboardTEData();
+        if (clipboardTEData != null && !clipboardTEData.isEmpty()) {
+            ListTag teList = new ListTag();
+            for (TagPos tagPos : clipboardTEData) {
+                teList.add(tagPos.getTag());
+            }
+            teDataTag.put("tedata", teList);
+            System.out.println("TileEntities to send: " + clipboardTEData.size());
+        } else {
+            System.out.println("No TileEntity data to send");
+        }
+        
+        PacketDistributor.sendToServer(new SendClipboardToGadgetPayload(targetGadgetUUID, newCopyUUID, tag, teDataTag));
         
         System.out.println("Packet sent to server!");
         System.out.println("==============================================");
@@ -142,7 +193,7 @@ public class ClipboardUtils {
     }
     
     public static void clearClipboard() {
-        HistoryTab.setClipboard(null, null, 0);
+        HistoryTab.setClipboard(null, null, null, 0);
         
         System.out.println("==============================================");
         System.out.println("Clipboard cleared!");
