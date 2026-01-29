@@ -5,6 +5,7 @@ import dev.thefern.buildinggadgets2gui.client.tabs.DebugTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.HelpTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SchematicsTab;
+import dev.thefern.buildinggadgets2gui.client.tabs.SearchTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SettingsTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.TabPanel;
 import dev.thefern.buildinggadgets2gui.client.tabs.TrashTab;
@@ -28,6 +29,7 @@ public class TabbedCopyPasteScreen extends Screen {
     private TabType currentTab = TabType.SCHEMATICS;
     private TabPanel schematicsTab;
     private TabPanel historyTab;
+    private TabPanel searchTab;
     private TabPanel trashTab;
     private TabPanel settingsTab;
     private TabPanel helpTab;
@@ -35,6 +37,7 @@ public class TabbedCopyPasteScreen extends Screen {
     
     private Button schematicsButton;
     private Button historyButton;
+    private Button searchButton;
     private Button trashButton;
     private Button settingsButton;
     private Button helpButton;
@@ -45,6 +48,7 @@ public class TabbedCopyPasteScreen extends Screen {
     
     public enum TabType {
         SCHEMATICS,
+        SEARCH,
         HISTORY,
         TRASH,
         SETTINGS,
@@ -67,6 +71,7 @@ public class TabbedCopyPasteScreen extends Screen {
         
         schematicsTab = new SchematicsTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         historyTab = new HistoryTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
+        searchTab = new SearchTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         trashTab = new TrashTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         settingsTab = new SettingsTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         helpTab = new HelpTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
@@ -84,15 +89,27 @@ public class TabbedCopyPasteScreen extends Screen {
         );
         currentX += TAB_WIDTH;
         
-        historyButton = this.addRenderableWidget(
+        searchButton = this.addRenderableWidget(
             Button.builder(
-                Component.literal("History"),
-                button -> switchTab(TabType.HISTORY)
+                Component.literal("🔍"),
+                button -> switchTab(TabType.SEARCH)
             )
-            .bounds(currentX, topPos, TAB_WIDTH, TAB_HEIGHT)
+            .bounds(currentX, topPos, ICON_TAB_WIDTH, TAB_HEIGHT)
+            .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Search")))
             .build()
         );
-        currentX += TAB_WIDTH;
+        currentX += ICON_TAB_WIDTH;
+        
+        historyButton = this.addRenderableWidget(
+            Button.builder(
+                Component.literal("🕐"),
+                button -> switchTab(TabType.HISTORY)
+            )
+            .bounds(currentX, topPos, ICON_TAB_WIDTH, TAB_HEIGHT)
+            .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("History")))
+            .build()
+        );
+        currentX += ICON_TAB_WIDTH;
         
         trashButton = this.addRenderableWidget(
             Button.builder(
@@ -151,6 +168,7 @@ public class TabbedCopyPasteScreen extends Screen {
         
         schematicsTab.init();
         historyTab.init();
+        searchTab.init();
         trashTab.init();
         settingsTab.init();
         helpTab.init();
@@ -162,6 +180,11 @@ public class TabbedCopyPasteScreen extends Screen {
             }
         }
         for (var widget : historyTab.getWidgets()) {
+            if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
+                this.addRenderableWidget(abstractWidget);
+            }
+        }
+        for (var widget : searchTab.getWidgets()) {
             if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
                 this.addRenderableWidget(abstractWidget);
             }
@@ -190,6 +213,7 @@ public class TabbedCopyPasteScreen extends Screen {
         currentTab = lastActiveTab;
         schematicsTab.onTabDeactivated();
         historyTab.onTabDeactivated();
+        searchTab.onTabDeactivated();
         trashTab.onTabDeactivated();
         settingsTab.onTabDeactivated();
         helpTab.onTabDeactivated();
@@ -209,6 +233,7 @@ public class TabbedCopyPasteScreen extends Screen {
     private TabPanel getCurrentTabPanel() {
         return switch (currentTab) {
             case SCHEMATICS -> schematicsTab;
+            case SEARCH -> searchTab;
             case HISTORY -> historyTab;
             case TRASH -> trashTab;
             case SETTINGS -> settingsTab;
@@ -238,9 +263,13 @@ public class TabbedCopyPasteScreen extends Screen {
             currentTab == TabType.SCHEMATICS ? activeColor : inactiveColor);
         currentX += TAB_WIDTH;
         
-        guiGraphics.fill(currentX, topPos, currentX + TAB_WIDTH, topPos + TAB_HEIGHT, 
+        guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
+            currentTab == TabType.SEARCH ? activeColor : inactiveColor);
+        currentX += ICON_TAB_WIDTH;
+        
+        guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
             currentTab == TabType.HISTORY ? activeColor : inactiveColor);
-        currentX += TAB_WIDTH;
+        currentX += ICON_TAB_WIDTH;
         
         guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
             currentTab == TabType.TRASH ? activeColor : inactiveColor);
