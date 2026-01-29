@@ -7,6 +7,7 @@ import com.direwolf20.buildinggadgets2.util.datatypes.StatePos;
 import com.direwolf20.buildinggadgets2.util.datatypes.TagPos;
 import dev.thefern.buildinggadgets2gui.Config;
 import dev.thefern.buildinggadgets2gui.client.HistoryManager;
+import dev.thefern.buildinggadgets2gui.client.RowActionButtons;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.MaterialListDialog;
 import dev.thefern.buildinggadgets2gui.network.SendClipboardToGadgetPayload;
@@ -38,7 +39,6 @@ public class HistoryTab extends TabPanel {
     private static int clipboardBlockCount = 0;
     
     private static List<HistoryEntry> copyHistory = new ArrayList<>();
-    private List<Button> historyButtons = new ArrayList<>();
     private Button clearAllButton;
     
     private int scrollOffset = 0;
@@ -110,26 +110,7 @@ public class HistoryTab extends TabPanel {
     }
     
     private void createHistoryButtons() {
-        historyButtons.clear();
-        
         calculateMaxVisibleEntries();
-        
-        int historyY = y + HISTORY_START_Y;
-        
-        for (int i = 0; i < MAX_HISTORY_BUTTONS; i++) {
-            final int index = i;
-            
-            Button sendButton = Button.builder(
-                Component.literal("Send to Clipboard"),
-                button -> sendHistoryToClipboard(scrollOffset + index)
-            )
-            .bounds(x + 220, historyY + (i * HISTORY_ROW_HEIGHT), 120, 18)
-            .build();
-            
-            sendButton.visible = false;
-            historyButtons.add(sendButton);
-            widgets.add(sendButton);
-        }
     }
     
     private int[] getDeleteButtonBounds(int rowIndex) {
@@ -140,12 +121,30 @@ public class HistoryTab extends TabPanel {
         return new int[]{buttonX, buttonY, buttonSize};
     }
     
-    private int[] getMaterialButtonBounds(int rowIndex) {
+    private static final int ACTION_BUTTONS_RIGHT_X = 250;
+    
+    private List<RowActionButtons.ButtonBounds> getRowActionBounds(int rowIndex) {
         int historyY = y + HISTORY_START_Y;
-        int buttonSize = 14;
-        int buttonX = x + 55;
         int buttonY = historyY + (rowIndex * HISTORY_ROW_HEIGHT) + 3;
-        return new int[]{buttonX, buttonY, buttonSize};
+        return RowActionButtons.calculateButtonBounds(
+            x + ACTION_BUTTONS_RIGHT_X, 
+            buttonY, 
+            RowActionButtons.ButtonType.MATERIAL,
+            RowActionButtons.ButtonType.CLIPBOARD,
+            RowActionButtons.ButtonType.TOOL
+        );
+    }
+    
+    public static String formatBlockCount(int count) {
+        if (count >= 1000) {
+            double k = count / 1000.0;
+            if (k == Math.floor(k)) {
+                return String.format("%.0fK", k);
+            } else {
+                return String.format("%.1fK", k);
+            }
+        }
+        return String.valueOf(count);
     }
     
     private void calculateMaxVisibleEntries() {
@@ -159,18 +158,6 @@ public class HistoryTab extends TabPanel {
         
         clearAllButton.visible = isActive && !copyHistory.isEmpty();
         clearAllButton.active = isActive && !copyHistory.isEmpty();
-        
-        int entriesToShow = Math.min(copyHistory.size() - scrollOffset, maxVisibleEntries);
-        
-        for (int i = 0; i < MAX_HISTORY_BUTTONS; i++) {
-            if (i < entriesToShow && isActive) {
-                historyButtons.get(i).visible = true;
-                historyButtons.get(i).active = true;
-            } else {
-                historyButtons.get(i).visible = false;
-                historyButtons.get(i).active = false;
-            }
-        }
     }
     
     private void updateScrollLimits() {
@@ -265,38 +252,29 @@ public class HistoryTab extends TabPanel {
                 false
             );
             
-            int[] materialBounds = getMaterialButtonBounds(i);
-            boolean isHoveringMaterial = mouseX >= materialBounds[0] && mouseX <= materialBounds[0] + materialBounds[2] &&
-                                         mouseY >= materialBounds[1] && mouseY <= materialBounds[1] + materialBounds[2];
-            
-            guiGraphics.fill(
-                materialBounds[0], 
-                materialBounds[1], 
-                materialBounds[0] + materialBounds[2], 
-                materialBounds[1] + materialBounds[2], 
-                isHoveringMaterial ? 0xFF6688FF : 0xFF4466AA
-            );
-            
-            String mText = "M";
-            int mTextWidth = Minecraft.getInstance().font.width(mText);
-            guiGraphics.drawString(
-                Minecraft.getInstance().font,
-                mText,
-                materialBounds[0] + (materialBounds[2] - mTextWidth) / 2,
-                materialBounds[1] + 3,
-                0xFFFFFF,
-                false
-            );
-            
-            String entryText = String.format("[%s] %d blocks", entry.timestamp, entry.blockCount);
+            String entryText = String.format("[%s] %s blocks", entry.timestamp, formatBlockCount(entry.blockCount));
             guiGraphics.drawString(
                 Minecraft.getInstance().font,
                 entryText,
-                x + 75,
+                x + 55,
                 rowY + 5,
                 0xAAAAAA,
                 false
             );
+            
+            List<RowActionButtons.ButtonBounds> actionButtons = getRowActionBounds(i);
+            RowActionButtons.renderButtons(guiGraphics, actionButtons, mouseX, mouseY);
+        }
+        
+        renderActionButtonTooltips(guiGraphics, mouseX, mouseY);
+    }
+    
+    private void renderActionButtonTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        int entriesToShow = Math.min(copyHistory.size() - scrollOffset, maxVisibleEntries);
+        
+        for (int i = 0; i < entriesToShow; i++) {
+            List<RowActionButtons.ButtonBounds> actionButtons = getRowActionBounds(i);
+            RowActionButtons.renderTooltip(guiGraphics, actionButtons, mouseX, mouseY);
         }
     }
     
@@ -394,6 +372,66 @@ public class HistoryTab extends TabPanel {
         }
     }
     
+    private void handleActionButtonClick(int index, RowActionButtons.ButtonType buttonType) {
+        switch (buttonType) {
+            case MATERIAL:
+                showMaterialList(index);
+                break;
+            case CLIPBOARD:
+                sendHistoryToClipboard(index);
+                break;
+            case TOOL:
+                sendHistoryToTool(index);
+                break;
+        }
+    }
+    
+    private void sendHistoryToTool(int index) {
+        if (index < 0 || index >= copyHistory.size()) {
+            System.out.println("Invalid history index: " + index);
+            return;
+        }
+        
+        ConfirmationDialog dialog = new ConfirmationDialog(
+            parentScreen,
+            "Send to Tool",
+            "This will override current tool copy data. Continue?",
+            confirmed -> {
+                if (confirmed) {
+                    performSendHistoryToTool(index);
+                }
+            }
+        );
+        Minecraft.getInstance().setScreen(dialog);
+    }
+    
+    private void performSendHistoryToTool(int index) {
+        HistoryEntry entry = copyHistory.get(index);
+        
+        clipboardBlocks = new ArrayList<>();
+        for (StatePos statePos : entry.blocks) {
+            clipboardBlocks.add(new StatePos(statePos.state, statePos.pos.immutable()));
+        }
+        
+        if (entry.teData != null && !entry.teData.isEmpty()) {
+            clipboardTEData = new ArrayList<>(entry.teData);
+        } else {
+            clipboardTEData = null;
+        }
+        
+        clipboardCopyUUID = entry.copyUUID;
+        clipboardBlockCount = entry.blockCount;
+        
+        dev.thefern.buildinggadgets2gui.client.ClipboardUtils.sendToTool();
+        
+        System.out.println("==============================================");
+        System.out.println("Sent history entry #" + (index + 1) + " directly to tool");
+        System.out.println("Timestamp: " + entry.timestamp);
+        System.out.println("Blocks: " + clipboardBlockCount);
+        System.out.println("TileEntities: " + (clipboardTEData != null ? clipboardTEData.size() : 0));
+        System.out.println("==============================================");
+    }
+    
     public static void addToHistory(ArrayList<StatePos> blocks, UUID copyUUID, int blockCount) {
         addToHistory(blocks, null, copyUUID, blockCount);
     }
@@ -481,10 +519,10 @@ public class HistoryTab extends TabPanel {
                 return true;
             }
             
-            int[] materialBounds = getMaterialButtonBounds(i);
-            if (mouseX >= materialBounds[0] && mouseX <= materialBounds[0] + materialBounds[2] &&
-                mouseY >= materialBounds[1] && mouseY <= materialBounds[1] + materialBounds[2]) {
-                showMaterialList(scrollOffset + i);
+            List<RowActionButtons.ButtonBounds> actionButtons = getRowActionBounds(i);
+            RowActionButtons.ButtonType clickedType = RowActionButtons.getClickedButton(actionButtons, mouseX, mouseY);
+            if (clickedType != null) {
+                handleActionButtonClick(scrollOffset + i, clickedType);
                 return true;
             }
         }

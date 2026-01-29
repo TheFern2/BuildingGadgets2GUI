@@ -1,7 +1,10 @@
 package dev.thefern.buildinggadgets2gui.client.schematics;
 
+import dev.thefern.buildinggadgets2gui.client.ClipboardUtils;
+import dev.thefern.buildinggadgets2gui.client.RowActionButtons;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.MaterialListDialog;
+import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SchematicsTab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -225,6 +228,7 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
         private final SchematicFile file;
         private int lastRenderedTop;
         private int lastRenderedLeft;
+        private int lastRenderedWidth;
         
         public FileEntry(SchematicFile file) {
             this.file = file;
@@ -249,12 +253,25 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
             return Component.literal("File: " + file.getName());
         }
         
+        private java.util.List<RowActionButtons.ButtonBounds> getActionBounds(int left, int top, int width) {
+            int buttonY = top + 6;
+            int rightX = left + width - 8;
+            return RowActionButtons.calculateButtonBounds(
+                rightX, 
+                buttonY, 
+                RowActionButtons.BUTTON_SIZE_SMALL,
+                RowActionButtons.ButtonType.MATERIAL,
+                RowActionButtons.ButtonType.TOOL
+            );
+        }
+        
         @Override
         public void render(GuiGraphics graphics, int index, int top, int left, int width, int height,
                           int mouseX, int mouseY, boolean hovered, float partialTick) {
             
             this.lastRenderedTop = top;
             this.lastRenderedLeft = left;
+            this.lastRenderedWidth = width;
             
             int deleteButtonSize = 12;
             int deleteButtonX = left + 2;
@@ -282,34 +299,14 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                 false
             );
             
-            int materialButtonSize = 12;
-            int materialButtonX = left + width - materialButtonSize - 8;
-            int materialButtonY = top + 6;
+            java.util.List<RowActionButtons.ButtonBounds> actionButtons = getActionBounds(left, top, width);
+            RowActionButtons.renderButtons(graphics, actionButtons, mouseX, mouseY);
             
-            boolean isHoveringMaterial = mouseX >= materialButtonX && mouseX <= materialButtonX + materialButtonSize &&
-                                         mouseY >= materialButtonY && mouseY <= materialButtonY + materialButtonSize;
-            
-            graphics.fill(
-                materialButtonX,
-                materialButtonY,
-                materialButtonX + materialButtonSize,
-                materialButtonY + materialButtonSize,
-                isHoveringMaterial ? 0xFF6688FF : 0xFF4466AA
-            );
-            
-            String mText = "M";
-            int mTextWidth = Minecraft.getInstance().font.width(mText);
-            graphics.drawString(
-                Minecraft.getInstance().font,
-                mText,
-                materialButtonX + (materialButtonSize - mTextWidth) / 2,
-                materialButtonY + 2,
-                0xFFFFFF,
-                false
-            );
-            
-            if (isHoveringMaterial) {
-                setPendingTooltip(Component.literal("Material list"), mouseX, mouseY);
+            for (RowActionButtons.ButtonBounds bounds : actionButtons) {
+                if (bounds.contains(mouseX, mouseY)) {
+                    setPendingTooltip(Component.literal(bounds.type.tooltip), mouseX, mouseY);
+                    break;
+                }
             }
             
             String fileIcon = "📄";
@@ -354,14 +351,10 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                     return true;
                 }
                 
-                int materialButtonSize = 12;
-                int materialButtonX = lastRenderedLeft + getRowWidth() - materialButtonSize - 8;
-                int materialButtonY = lastRenderedTop + 6;
-                
-                if (mouseX >= materialButtonX && mouseX <= materialButtonX + materialButtonSize &&
-                    mouseY >= materialButtonY && mouseY <= materialButtonY + materialButtonSize) {
-                    
-                    onMaterialButtonClicked();
+                java.util.List<RowActionButtons.ButtonBounds> actionButtons = getActionBounds(lastRenderedLeft, lastRenderedTop, lastRenderedWidth);
+                RowActionButtons.ButtonType clickedType = RowActionButtons.getClickedButton(actionButtons, mouseX, mouseY);
+                if (clickedType != null) {
+                    handleActionButtonClick(clickedType);
                     return true;
                 }
                 
@@ -369,6 +362,43 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                 return true;
             }
             return false;
+        }
+        
+        private void handleActionButtonClick(RowActionButtons.ButtonType buttonType) {
+            switch (buttonType) {
+                case MATERIAL:
+                    onMaterialButtonClicked();
+                    break;
+                case TOOL:
+                    onToolButtonClicked();
+                    break;
+                default:
+                    break;
+            }
+        }
+        
+        private void onToolButtonClicked() {
+            ConfirmationDialog dialog = new ConfirmationDialog(
+                parent.getParentScreen(),
+                "Send to Tool",
+                "This will override current tool copy data. Continue?",
+                confirmed -> {
+                    if (confirmed) {
+                        SchematicFile.SchematicData data = file.loadData();
+                        if (data != null && data.blocks != null) {
+                            HistoryTab.setClipboard(
+                                data.blocks,
+                                data.teData,
+                                data.copyUUID != null ? java.util.UUID.fromString(data.copyUUID) : null,
+                                data.blockCount
+                            );
+                            ClipboardUtils.sendToTool();
+                            System.out.println("Sent schematic '" + file.getName() + "' to tool");
+                        }
+                    }
+                }
+            );
+            Minecraft.getInstance().setScreen(dialog);
         }
         
         private void onMaterialButtonClicked() {

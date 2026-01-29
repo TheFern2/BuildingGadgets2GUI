@@ -1,6 +1,7 @@
 package dev.thefern.buildinggadgets2gui.client.tabs;
 
 import dev.thefern.buildinggadgets2gui.client.ClipboardUtils;
+import dev.thefern.buildinggadgets2gui.client.RowActionButtons;
 import dev.thefern.buildinggadgets2gui.client.TEDataClientCache;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.CreateFolderDialog;
@@ -42,10 +43,7 @@ public class SchematicsTab extends TabPanel {
     private Button copyFromToolButton;
     private Button saveButton;
     private Button deleteButton;
-    private Button sendToToolButton;
     private Button clearClipboardButton;
-    
-    private static final int CLIPBOARD_MATERIAL_BUTTON_SIZE = 14;
     
     private String clipboardTimestamp = null;
     private int clipboardHighlightTicks = 0;
@@ -144,18 +142,6 @@ public class SchematicsTab extends TabPanel {
         );
         schematicsList.setX(x + PADDING);
         
-        int sendButtonWidth = 120;
-        int sendButtonX = x + width - sendButtonWidth - PADDING;
-        int sendButtonY = y + height - 30;
-        
-        sendToToolButton = Button.builder(
-            Component.literal("Send to Tool"),
-            button -> onSendToToolPressed()
-        )
-        .bounds(sendButtonX, sendButtonY, sendButtonWidth, 20)
-        .build();
-        sendToToolButton.active = false;
-        widgets.add(sendToToolButton);
     }
     
     private void onCopyFromToolPressed() {
@@ -208,12 +194,18 @@ public class SchematicsTab extends TabPanel {
         }
     }
     
-    private int[] getClipboardMaterialButtonBounds() {
+    private static final int CLIPBOARD_ACTION_BUTTONS_RIGHT_X = 285;
+    
+    private java.util.List<RowActionButtons.ButtonBounds> getClipboardActionBounds() {
         int buttonY = y + 5;
         int clipboardRowY = buttonY + 25;
-        int buttonX = x + PADDING + 260;
         int buttonYPos = clipboardRowY + 4;
-        return new int[]{buttonX, buttonYPos, CLIPBOARD_MATERIAL_BUTTON_SIZE};
+        return RowActionButtons.calculateButtonBounds(
+            x + CLIPBOARD_ACTION_BUTTONS_RIGHT_X, 
+            buttonYPos, 
+            RowActionButtons.ButtonType.MATERIAL,
+            RowActionButtons.ButtonType.TOOL
+        );
     }
     
     @Override
@@ -319,28 +311,9 @@ public class SchematicsTab extends TabPanel {
                 );
             }
             
-            int[] mBounds = getClipboardMaterialButtonBounds();
-            boolean isHoveringM = mouseX >= mBounds[0] && mouseX <= mBounds[0] + mBounds[2] &&
-                                  mouseY >= mBounds[1] && mouseY <= mBounds[1] + mBounds[2];
-            
-            guiGraphics.fill(
-                mBounds[0], 
-                mBounds[1], 
-                mBounds[0] + mBounds[2], 
-                mBounds[1] + mBounds[2], 
-                isHoveringM ? 0xFF6688FF : 0xFF4466AA
-            );
-            
-            String mText = "M";
-            int mTextWidth = Minecraft.getInstance().font.width(mText);
-            guiGraphics.drawString(
-                Minecraft.getInstance().font,
-                mText,
-                mBounds[0] + (mBounds[2] - mTextWidth) / 2,
-                mBounds[1] + 3,
-                0xFFFFFF,
-                false
-            );
+            java.util.List<RowActionButtons.ButtonBounds> actionButtons = getClipboardActionBounds();
+            RowActionButtons.renderButtons(guiGraphics, actionButtons, mouseX, mouseY);
+            RowActionButtons.renderTooltip(guiGraphics, actionButtons, mouseX, mouseY);
         } else {
             guiGraphics.drawString(
                 Minecraft.getInstance().font,
@@ -596,29 +569,6 @@ public class SchematicsTab extends TabPanel {
         Minecraft.getInstance().setScreen(dialog);
     }
     
-    private void onSendToToolPressed() {
-        if (selectedFile == null) return;
-        
-        ConfirmationDialog dialog = new ConfirmationDialog(
-            parentScreen,
-            "Send to Tool",
-            "This will override current tool copy data. Continue?",
-            confirmed -> {
-                if (confirmed) {
-                    SchematicFile.SchematicData data = selectedFile.loadData();
-                    if (data != null && data.blocks != null) {
-                        HistoryTab.setClipboard(data.blocks, 
-                            data.teData,
-                            data.copyUUID != null ? UUID.fromString(data.copyUUID) : null, 
-                            data.blockCount);
-                        ClipboardUtils.sendToTool();
-                    }
-                }
-            }
-        );
-        Minecraft.getInstance().setScreen(dialog);
-    }
-    
     private void updateNavigationButtons() {
         if (rootButton != null) {
             rootButton.active = !SchematicManager.isAtRoot();
@@ -633,9 +583,6 @@ public class SchematicsTab extends TabPanel {
         if (deleteButton != null) {
             deleteButton.active = hasSelection;
         }
-        if (sendToToolButton != null) {
-            sendToToolButton.active = hasSelection;
-        }
     }
     
     @Override
@@ -644,10 +591,10 @@ public class SchematicsTab extends TabPanel {
         
         ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
         if (clipboardBlocks != null && !clipboardBlocks.isEmpty()) {
-            int[] mBounds = getClipboardMaterialButtonBounds();
-            if (mouseX >= mBounds[0] && mouseX <= mBounds[0] + mBounds[2] &&
-                mouseY >= mBounds[1] && mouseY <= mBounds[1] + mBounds[2]) {
-                onClipboardMaterialPressed();
+            java.util.List<RowActionButtons.ButtonBounds> actionButtons = getClipboardActionBounds();
+            RowActionButtons.ButtonType clickedType = RowActionButtons.getClickedButton(actionButtons, mouseX, mouseY);
+            if (clickedType != null) {
+                handleClipboardActionClick(clickedType);
                 return true;
             }
         }
@@ -656,6 +603,33 @@ public class SchematicsTab extends TabPanel {
             return schematicsList.mouseClicked(mouseX, mouseY, button);
         }
         return false;
+    }
+    
+    private void handleClipboardActionClick(RowActionButtons.ButtonType buttonType) {
+        switch (buttonType) {
+            case MATERIAL:
+                onClipboardMaterialPressed();
+                break;
+            case TOOL:
+                onClipboardSendToToolPressed();
+                break;
+            default:
+                break;
+        }
+    }
+    
+    private void onClipboardSendToToolPressed() {
+        ConfirmationDialog dialog = new ConfirmationDialog(
+            parentScreen,
+            "Send to Tool",
+            "This will override current tool copy data. Continue?",
+            confirmed -> {
+                if (confirmed) {
+                    ClipboardUtils.sendToTool();
+                }
+            }
+        );
+        Minecraft.getInstance().setScreen(dialog);
     }
     
     @Override

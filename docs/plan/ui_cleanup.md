@@ -4,11 +4,8 @@
 - A button to see materials - done
 - History needs consistency like schematic for delete - done
 - Material list an icon for the blocks - done
-- 
-- Send to tool from clipboard and history rows, and a > and tooltip
-- A how to screen
-- Implement tags
-- Implement trash tab
+- Send to tool from clipboard and history rows, and a > and tooltip - done
+- A how to screen, or best way for instructions
 
 ---
 
