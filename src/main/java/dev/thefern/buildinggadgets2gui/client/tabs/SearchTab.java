@@ -25,9 +25,9 @@ public class SearchTab extends TabPanel {
     
     private static final int PADDING = 10;
     private static final int SEARCH_BOX_WIDTH = 200;
-    private static final int TAG_BUTTON_WIDTH = 60;
     private static final int TAG_BUTTON_HEIGHT = 16;
     private static final int TAG_SPACING = 4;
+    private static final int TAG_PADDING = 6;
     private static final int TAGS_SECTION_HEIGHT = 40;
     private static final int RESULT_ROW_HEIGHT = 24;
     private static final int RESULTS_HEIGHT = 120;
@@ -93,16 +93,20 @@ public class SearchTab extends TabPanel {
     
     private void calculateTagLayout() {
         int availableWidth = width - PADDING * 2 - 20;
-        tagsPerRow = availableWidth / (TAG_BUTTON_WIDTH + TAG_SPACING);
-        if (tagsPerRow < 1) tagsPerRow = 1;
-        
         List<String> allTags = TagManager.getAllTags();
-        totalTagRows = (int) Math.ceil((double) allTags.size() / tagsPerRow);
-    }
-    
-    private String getTagButtonLabel(String tag) {
-        String displayTag = tag.length() > 6 ? tag.substring(0, 5) + ".." : tag;
-        return (selectedTags.contains(tag) ? "✓ " : "") + displayTag;
+        
+        int currentX = 0;
+        int rows = 1;
+        for (String tag : allTags) {
+            int tagWidth = getTagButtonWidth(tag, selectedTags.contains(tag));
+            if (currentX + tagWidth > availableWidth && currentX > 0) {
+                currentX = 0;
+                rows++;
+            }
+            currentX += tagWidth + TAG_SPACING;
+        }
+        totalTagRows = rows;
+        tagsPerRow = allTags.isEmpty() ? 1 : (int) Math.ceil((double) allTags.size() / rows);
     }
     
     private void onSearchTextChanged(String text) {
@@ -258,6 +262,11 @@ public class SearchTab extends TabPanel {
         }
     }
     
+    private int getTagButtonWidth(String tag, boolean isSelected) {
+        String displayTag = isSelected ? "✓ " + tag : tag;
+        return Minecraft.getInstance().font.width(displayTag) + TAG_PADDING * 2;
+    }
+    
     private void renderTagsSection(GuiGraphics guiGraphics, int mouseX, int mouseY, int tagsSectionY) {
         int tagsX = x + PADDING;
         int tagsWidth = width - PADDING * 2 - 10;
@@ -272,38 +281,36 @@ public class SearchTab extends TabPanel {
         
         for (int i = 0; i < allTags.size(); i++) {
             String tag = allTags.get(i);
+            boolean isSelected = selectedTags.contains(tag);
+            int tagWidth = getTagButtonWidth(tag, isSelected);
             
-            if (currentX + TAG_BUTTON_WIDTH > tagsX + tagsWidth - 2) {
+            if (currentX + tagWidth > tagsX + tagsWidth - 2) {
                 currentX = tagsX + 2;
                 currentY += TAG_BUTTON_HEIGHT + TAG_SPACING;
             }
             
             if (currentY + TAG_BUTTON_HEIGHT > tagsSectionY && currentY < tagsSectionY + TAGS_SECTION_HEIGHT) {
-                boolean isHovered = mouseX >= currentX && mouseX <= currentX + TAG_BUTTON_WIDTH &&
+                boolean isHovered = mouseX >= currentX && mouseX <= currentX + tagWidth &&
                                    mouseY >= currentY && mouseY <= currentY + TAG_BUTTON_HEIGHT &&
                                    mouseY >= tagsSectionY && mouseY <= tagsSectionY + TAGS_SECTION_HEIGHT;
-                boolean isSelected = selectedTags.contains(tag);
                 
                 int bgColor = isSelected ? 0xFF446688 : (isHovered ? 0xFF3A3A3A : 0xFF2A2A2A);
-                guiGraphics.fill(currentX, currentY, currentX + TAG_BUTTON_WIDTH, currentY + TAG_BUTTON_HEIGHT, bgColor);
+                guiGraphics.fill(currentX, currentY, currentX + tagWidth, currentY + TAG_BUTTON_HEIGHT, bgColor);
                 
-                String displayTag = tag.length() > 7 ? tag.substring(0, 6) + ".." : tag;
-                if (isSelected) {
-                    displayTag = "✓" + displayTag;
-                }
+                String displayTag = isSelected ? "✓ " + tag : tag;
                 
                 int textColor = isSelected ? 0xFFFFFF : (isHovered ? 0xFFFFFF : 0xCCCCCC);
                 guiGraphics.drawString(
                     Minecraft.getInstance().font,
                     displayTag,
-                    currentX + 3,
+                    currentX + TAG_PADDING,
                     currentY + 4,
                     textColor,
                     false
                 );
             }
             
-            currentX += TAG_BUTTON_WIDTH + TAG_SPACING;
+            currentX += tagWidth + TAG_SPACING;
         }
         
         guiGraphics.disableScissor();
@@ -428,16 +435,19 @@ public class SearchTab extends TabPanel {
             int currentY = tagsSectionY + 2 - (tagScrollOffset * (TAG_BUTTON_HEIGHT + TAG_SPACING));
             
             for (String tag : allTags) {
-                if (currentX + TAG_BUTTON_WIDTH > tagsX + tagsWidth - 2) {
+                boolean isSelected = selectedTags.contains(tag);
+                int tagWidth = getTagButtonWidth(tag, isSelected);
+                
+                if (currentX + tagWidth > tagsX + tagsWidth - 2) {
                     currentX = tagsX + 2;
                     currentY += TAG_BUTTON_HEIGHT + TAG_SPACING;
                 }
                 
-                if (mouseX >= currentX && mouseX <= currentX + TAG_BUTTON_WIDTH &&
+                if (mouseX >= currentX && mouseX <= currentX + tagWidth &&
                     mouseY >= currentY && mouseY <= currentY + TAG_BUTTON_HEIGHT &&
                     currentY + TAG_BUTTON_HEIGHT > tagsSectionY && currentY < tagsSectionY + TAGS_SECTION_HEIGHT) {
                     
-                    if (selectedTags.contains(tag)) {
+                    if (isSelected) {
                         selectedTags.remove(tag);
                     } else {
                         selectedTags.add(tag);
@@ -447,7 +457,7 @@ public class SearchTab extends TabPanel {
                     return true;
                 }
                 
-                currentX += TAG_BUTTON_WIDTH + TAG_SPACING;
+                currentX += tagWidth + TAG_SPACING;
             }
             return true;
         }
