@@ -15,11 +15,29 @@ This is a Minecraft NeoForge mod that enhances the Building Gadgets 2 (BG2) mod 
 - Cross-world schematic reusability
 
 # Screenshots
-![](docs/images/schematics.png)
 
-![](docs/images/schematics1.png)
+### Clipboard & Schematics
+![Clipboard](docs/images/clipboard.png)
 
-![](docs/images/history.png)
+![Schematics](docs/images/schematics.png)
+
+### Search
+![Search](docs/images/search.png)
+
+### History
+![History](docs/images/history.png)
+
+### Tags
+![Tags](docs/images/tags.png)
+
+### Materials
+![Materials](docs/images/materials.png)
+
+### Trash
+![Trash](docs/images/trash.png)
+
+### Help
+![Help](docs/images/help.png)
 
 ## Technology Stack
 - **Minecraft Version:** 1.21.1
