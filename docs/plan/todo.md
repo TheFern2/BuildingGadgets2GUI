@@ -1,7 +1,7 @@
 ## TODO
 
-- Implement tags
-- Implement search
-- Implement trash tab
-  - settings for how many items to keep and for how long
+- Implement tags - done
+- Implement trash tab - done
+- Implement search tab
+- Implement filter on schematics list
 

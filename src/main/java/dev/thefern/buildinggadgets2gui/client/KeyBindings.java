@@ -16,21 +16,21 @@ public class KeyBindings {
     public static final KeyMapping OPEN_GUI = new KeyMapping(
         "key.buildinggadgets2gui.open_gui",
         InputConstants.Type.KEYSYM,
-        GLFW.GLFW_KEY_G,
+        GLFW.GLFW_KEY_GRAVE_ACCENT,
         CATEGORY
     );
     
     public static final KeyMapping COPY_DATA = new KeyMapping(
         "key.buildinggadgets2gui.copy_data",
         InputConstants.Type.KEYSYM,
-        GLFW.GLFW_KEY_C,
+        GLFW.GLFW_KEY_LEFT,
         CATEGORY
     );
     
     public static final KeyMapping PASTE_DATA = new KeyMapping(
         "key.buildinggadgets2gui.paste_data",
         InputConstants.Type.KEYSYM,
-        GLFW.GLFW_KEY_V,
+        GLFW.GLFW_KEY_RIGHT,
         CATEGORY
     );
     

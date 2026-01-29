@@ -3,6 +3,7 @@ package dev.thefern.buildinggadgets2gui.client.schematics;
 import dev.thefern.buildinggadgets2gui.client.ClipboardUtils;
 import dev.thefern.buildinggadgets2gui.client.RowActionButtons;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
+import dev.thefern.buildinggadgets2gui.client.dialogs.EditTagsDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.MaterialListDialog;
 import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SchematicsTab;
@@ -260,6 +261,7 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                 rightX, 
                 buttonY, 
                 RowActionButtons.BUTTON_SIZE_SMALL,
+                RowActionButtons.ButtonType.TAGS,
                 RowActionButtons.ButtonType.MATERIAL,
                 RowActionButtons.ButtonType.TOOL
             );
@@ -372,6 +374,9 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                 case TOOL:
                     onToolButtonClicked();
                     break;
+                case TAGS:
+                    onTagsButtonClicked();
+                    break;
                 default:
                     break;
             }
@@ -411,6 +416,19 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                 );
                 Minecraft.getInstance().setScreen(dialog);
             }
+        }
+        
+        private void onTagsButtonClicked() {
+            EditTagsDialog dialog = new EditTagsDialog(
+                parent.getParentScreen(),
+                file,
+                success -> {
+                    if (success) {
+                        refreshList();
+                    }
+                }
+            );
+            Minecraft.getInstance().setScreen(dialog);
         }
         
         private void onDeleteButtonClicked() {

@@ -80,6 +80,8 @@ public class SchematicManager {
             return false;
         }
         
+        String originalPath = getRelativePath(sourceFile.getParentFile());
+        
         File trashFile = new File(trashRoot, sourceFile.getName());
         
         int counter = 1;
@@ -94,9 +96,27 @@ public class SchematicManager {
         
         boolean success = sourceFile.renameTo(trashFile);
         if (success) {
+            TrashManager.addToTrash(trashFile.getName(), originalPath);
             System.out.println("Moved to trash: " + sourceFile.getName() + " -> " + trashFile.getName());
         }
         return success;
+    }
+    
+    private static String getRelativePath(File folder) {
+        if (folder == null || schematicsRoot == null) return "";
+        
+        String folderPath = folder.getAbsolutePath();
+        String rootPath = schematicsRoot.getAbsolutePath();
+        
+        if (folderPath.equals(rootPath)) {
+            return "";
+        }
+        
+        if (folderPath.startsWith(rootPath + File.separator)) {
+            return folderPath.substring(rootPath.length() + 1);
+        }
+        
+        return "";
     }
     
     public static boolean deleteFolder(SchematicFolder folder) {

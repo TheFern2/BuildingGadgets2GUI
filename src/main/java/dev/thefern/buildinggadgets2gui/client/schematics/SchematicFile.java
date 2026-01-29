@@ -230,6 +230,146 @@ public class SchematicFile {
         }
     }
     
+    public boolean addTag(String tag) {
+        if (tag == null || tag.trim().isEmpty()) return false;
+        
+        SchematicData data = loadData();
+        if (data == null) return false;
+        
+        String normalizedTag = tag.trim().toLowerCase();
+        
+        if (data.metadata == null) {
+            data.metadata = new SchematicMetadata();
+            data.metadata.name = getName();
+            data.metadata.tags = new ArrayList<>();
+        }
+        
+        if (data.metadata.tags == null) {
+            data.metadata.tags = new ArrayList<>();
+        }
+        
+        if (data.metadata.tags.contains(normalizedTag)) {
+            return true;
+        }
+        
+        data.metadata.tags.add(normalizedTag);
+        TagManager.ensureTagExists(normalizedTag);
+        
+        return updateSchematicData(data);
+    }
+    
+    public boolean removeTag(String tag) {
+        if (tag == null) return false;
+        
+        SchematicData data = loadData();
+        if (data == null) return false;
+        
+        String normalizedTag = tag.trim().toLowerCase();
+        
+        if (data.metadata == null || data.metadata.tags == null) {
+            return true;
+        }
+        
+        data.metadata.tags.remove(normalizedTag);
+        
+        return updateSchematicData(data);
+    }
+    
+    public boolean setTags(List<String> tags) {
+        SchematicData data = loadData();
+        if (data == null) return false;
+        
+        if (data.metadata == null) {
+            data.metadata = new SchematicMetadata();
+            data.metadata.name = getName();
+        }
+        
+        if (tags == null) {
+            data.metadata.tags = new ArrayList<>();
+        } else {
+            data.metadata.tags = new ArrayList<>();
+            for (String tag : tags) {
+                if (tag != null && !tag.trim().isEmpty()) {
+                    String normalizedTag = tag.trim().toLowerCase();
+                    if (!data.metadata.tags.contains(normalizedTag)) {
+                        data.metadata.tags.add(normalizedTag);
+                    }
+                }
+            }
+            TagManager.ensureTagsExist(data.metadata.tags);
+        }
+        
+        return updateSchematicData(data);
+    }
+    
+    public List<String> getTags() {
+        SchematicMetadata meta = getMetadata();
+        if (meta == null || meta.tags == null) {
+            return new ArrayList<>();
+        }
+        return new ArrayList<>(meta.tags);
+    }
+    
+    private boolean updateSchematicData(SchematicData data) {
+        try {
+            CompoundTag nbt = new CompoundTag();
+            nbt.putInt("version", data.version);
+            
+            CompoundTag metadataTag = new CompoundTag();
+            metadataTag.putString("name", data.metadata.name != null ? data.metadata.name : getName());
+            if (data.metadata.description != null && !data.metadata.description.isEmpty()) {
+                metadataTag.putString("description", data.metadata.description);
+            }
+            metadataTag.putLong("created", data.metadata.created > 0 ? data.metadata.created : System.currentTimeMillis());
+            metadataTag.putLong("modified", System.currentTimeMillis());
+            if (data.metadata.author != null) {
+                metadataTag.putString("author", data.metadata.author);
+            }
+            if (data.metadata.tags != null && !data.metadata.tags.isEmpty()) {
+                metadataTag.putString("tags", String.join(",", data.metadata.tags));
+            }
+            nbt.put("metadata", metadataTag);
+            
+            nbt.putInt("blockCount", data.blockCount);
+            
+            if (data.dimensions != null) {
+                CompoundTag dimensions = new CompoundTag();
+                dimensions.putInt("x", data.dimensions.x);
+                dimensions.putInt("y", data.dimensions.y);
+                dimensions.putInt("z", data.dimensions.z);
+                nbt.put("dimensions", dimensions);
+            }
+            
+            if (data.blocks != null && !data.blocks.isEmpty()) {
+                CompoundTag blocksNBT = BG2Data.statePosListToNBTMapArray(data.blocks);
+                nbt.put("blocks", blocksNBT);
+            }
+            
+            if (data.copyUUID != null) {
+                nbt.putString("copyUUID", data.copyUUID);
+            }
+            
+            if (data.teData != null && !data.teData.isEmpty()) {
+                ListTag teList = new ListTag();
+                for (TagPos tagPos : data.teData) {
+                    teList.add(tagPos.getTag());
+                }
+                nbt.put("tedata", teList);
+            }
+            
+            NbtIo.writeCompressed(nbt, file.toPath());
+            
+            metadataLoaded = false;
+            metadata = null;
+            
+            return true;
+        } catch (IOException e) {
+            System.err.println("Failed to update schematic: " + file.getName());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
     public static class SchematicData {
         public int version;
         public SchematicMetadata metadata;

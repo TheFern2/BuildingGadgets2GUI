@@ -244,6 +244,10 @@ public class MaterialListDialog extends Screen {
         return false;
     }
     
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    }
+    
     private static class MaterialEntry {
         final String name;
         final int count;

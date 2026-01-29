@@ -2,6 +2,7 @@ package dev.thefern.buildinggadgets2gui.client;
 
 import dev.thefern.buildinggadgets2gui.Config;
 import dev.thefern.buildinggadgets2gui.client.tabs.DebugTab;
+import dev.thefern.buildinggadgets2gui.client.tabs.HelpTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SchematicsTab;
 import dev.thefern.buildinggadgets2gui.client.tabs.SettingsTab;
@@ -29,12 +30,14 @@ public class TabbedCopyPasteScreen extends Screen {
     private TabPanel historyTab;
     private TabPanel trashTab;
     private TabPanel settingsTab;
+    private TabPanel helpTab;
     private TabPanel debugTab;
     
     private Button schematicsButton;
     private Button historyButton;
     private Button trashButton;
     private Button settingsButton;
+    private Button helpButton;
     private Button debugButton;
     private Button closeButton;
     
@@ -45,6 +48,7 @@ public class TabbedCopyPasteScreen extends Screen {
         HISTORY,
         TRASH,
         SETTINGS,
+        HELP,
         DEBUG
     }
     
@@ -65,6 +69,7 @@ public class TabbedCopyPasteScreen extends Screen {
         historyTab = new HistoryTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         trashTab = new TrashTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         settingsTab = new SettingsTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
+        helpTab = new HelpTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         debugTab = new DebugTab(this, leftPos, topPos + TAB_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT - TAB_HEIGHT);
         
         int currentX = leftPos;
@@ -111,6 +116,17 @@ public class TabbedCopyPasteScreen extends Screen {
         );
         currentX += ICON_TAB_WIDTH;
         
+        helpButton = this.addRenderableWidget(
+            Button.builder(
+                Component.literal("?"),
+                button -> switchTab(TabType.HELP)
+            )
+            .bounds(currentX, topPos, ICON_TAB_WIDTH, TAB_HEIGHT)
+            .tooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Help")))
+            .build()
+        );
+        currentX += ICON_TAB_WIDTH;
+        
         if (showDebugTab) {
             debugButton = this.addRenderableWidget(
                 Button.builder(
@@ -137,6 +153,7 @@ public class TabbedCopyPasteScreen extends Screen {
         historyTab.init();
         trashTab.init();
         settingsTab.init();
+        helpTab.init();
         debugTab.init();
         
         for (var widget : schematicsTab.getWidgets()) {
@@ -159,6 +176,11 @@ public class TabbedCopyPasteScreen extends Screen {
                 this.addRenderableWidget(abstractWidget);
             }
         }
+        for (var widget : helpTab.getWidgets()) {
+            if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
+                this.addRenderableWidget(abstractWidget);
+            }
+        }
         for (var widget : debugTab.getWidgets()) {
             if (widget instanceof net.minecraft.client.gui.components.AbstractWidget abstractWidget) {
                 this.addRenderableWidget(abstractWidget);
@@ -170,6 +192,7 @@ public class TabbedCopyPasteScreen extends Screen {
         historyTab.onTabDeactivated();
         trashTab.onTabDeactivated();
         settingsTab.onTabDeactivated();
+        helpTab.onTabDeactivated();
         debugTab.onTabDeactivated();
         getCurrentTabPanel().onTabActivated();
     }
@@ -189,6 +212,7 @@ public class TabbedCopyPasteScreen extends Screen {
             case HISTORY -> historyTab;
             case TRASH -> trashTab;
             case SETTINGS -> settingsTab;
+            case HELP -> helpTab;
             case DEBUG -> debugTab;
         };
     }
@@ -224,6 +248,10 @@ public class TabbedCopyPasteScreen extends Screen {
         
         guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
             currentTab == TabType.SETTINGS ? activeColor : inactiveColor);
+        currentX += ICON_TAB_WIDTH;
+        
+        guiGraphics.fill(currentX, topPos, currentX + ICON_TAB_WIDTH, topPos + TAB_HEIGHT, 
+            currentTab == TabType.HELP ? activeColor : inactiveColor);
         currentX += ICON_TAB_WIDTH;
         
         if (showDebugTab) {

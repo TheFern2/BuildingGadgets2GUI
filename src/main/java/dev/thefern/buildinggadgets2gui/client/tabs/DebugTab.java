@@ -1,6 +1,7 @@
 package dev.thefern.buildinggadgets2gui.client.tabs;
 
 import dev.thefern.buildinggadgets2gui.client.ClipboardUtils;
+import dev.thefern.buildinggadgets2gui.client.schematics.TrashManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -64,6 +65,17 @@ public class DebugTab extends TabPanel {
             button -> ClipboardUtils.clearClipboard()
         )
         .bounds(x + 205, buttonY, 175, 20)
+        .build());
+        buttonY += 30;
+        
+        widgets.add(Button.builder(
+            Component.literal("Simulate Trash Retention Expired"),
+            button -> onSimulateTrashRetention()
+        )
+        .bounds(x + 20, buttonY, 360, 20)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Sets all trash entry deletion dates to 60 days ago and runs cleanup")
+        ))
         .build());
     }
     
@@ -130,6 +142,20 @@ public class DebugTab extends TabPanel {
         System.out.println("Block count: " + copyData.blockCount);
         System.out.println("Gadget UUID: " + ClipboardUtils.formatUUID(copyData.gadgetUUID));
         System.out.println("Copy UUID: " + ClipboardUtils.formatUUID(copyData.copyUUID));
+        System.out.println("==============================================");
+    }
+    
+    private void onSimulateTrashRetention() {
+        int countBefore = TrashManager.getTrashCount();
+        System.out.println("==============================================");
+        System.out.println("Simulating trash retention expiry...");
+        System.out.println("Trash items before: " + countBefore);
+        
+        TrashManager.simulateRetentionExpired();
+        
+        int countAfter = TrashManager.getTrashCount();
+        System.out.println("Trash items after: " + countAfter);
+        System.out.println("Items cleaned up: " + (countBefore - countAfter));
         System.out.println("==============================================");
     }
     

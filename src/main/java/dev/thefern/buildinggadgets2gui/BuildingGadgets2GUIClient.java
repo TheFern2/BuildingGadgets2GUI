@@ -2,6 +2,8 @@ package dev.thefern.buildinggadgets2gui;
 
 import dev.thefern.buildinggadgets2gui.client.HistoryManager;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicManager;
+import dev.thefern.buildinggadgets2gui.client.schematics.TagManager;
+import dev.thefern.buildinggadgets2gui.client.schematics.TrashManager;
 import dev.thefern.buildinggadgets2gui.client.tabs.HistoryTab;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -37,7 +39,9 @@ public class BuildingGadgets2GUIClient {
             BuildingGadgets2GUI.LOGGER.info("History system initialized and loaded");
             
             SchematicManager.init();
-            BuildingGadgets2GUI.LOGGER.info("Schematic manager initialized");
+            TagManager.init();
+            TrashManager.init();
+            BuildingGadgets2GUI.LOGGER.info("Schematic, tag, and trash managers initialized");
         });
     }
 }

@@ -139,5 +139,9 @@ public class ConfirmationDialog extends Screen {
     public boolean isPauseScreen() {
         return false;
     }
+    
+    @Override
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+    }
 }
 

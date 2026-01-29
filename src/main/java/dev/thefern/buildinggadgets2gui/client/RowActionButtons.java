@@ -16,7 +16,10 @@ public class RowActionButtons {
     public enum ButtonType {
         MATERIAL("M", 0xFF4466AA, 0xFF6688FF, "Show Materials"),
         CLIPBOARD("C", 0xFF44AA66, 0xFF66FF88, "Send to Clipboard"),
-        TOOL("T", 0xFFAA6644, 0xFFFF8866, "Send to Tool");
+        TOOL("T", 0xFFAA6644, 0xFFFF8866, "Send to Tool"),
+        TAGS("#", 0xFF8844AA, 0xFFAA66FF, "Edit Tags"),
+        RESTORE("R", 0xFF44AA44, 0xFF66FF66, "Restore"),
+        DELETE_PERM("X", 0xFFAA4444, 0xFFFF6666, "Delete Permanently");
         
         public final String label;
         public final int normalColor;

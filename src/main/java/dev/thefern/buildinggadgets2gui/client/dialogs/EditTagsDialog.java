@@ -1,5 +1,6 @@
 package dev.thefern.buildinggadgets2gui.client.dialogs;
 
+import dev.thefern.buildinggadgets2gui.client.schematics.SchematicFile;
 import dev.thefern.buildinggadgets2gui.client.schematics.TagManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -12,42 +13,43 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class SaveSchematicDialog extends Screen {
+public class EditTagsDialog extends Screen {
     
-    private static final int DIALOG_WIDTH = 300;
-    private static final int DIALOG_HEIGHT = 270;
+    private static final int DIALOG_WIDTH = 280;
+    private static final int DIALOG_HEIGHT = 220;
     
     private static final int TAG_CHIP_HEIGHT = 16;
     private static final int TAG_CHIP_PADDING = 4;
     private static final int TAG_CHIP_SPACING = 4;
-    private static final int TAGS_AREA_HEIGHT = 85;
+    private static final int TAGS_AREA_HEIGHT = 120;
     
     private final Screen parent;
-    private final Consumer<SaveResult> onSave;
-    private final Consumer<Void> onCancel;
+    private final SchematicFile schematicFile;
+    private final Consumer<Boolean> onClose;
     
-    private EditBox nameInput;
-    private EditBox descriptionInput;
     private EditBox tagInput;
     private Button addTagButton;
     private Button saveButton;
     private Button cancelButton;
     
-    private List<String> selectedTags = new ArrayList<>();
-    private List<TagChip> availableTagChips = new ArrayList<>();
+    private List<String> currentTags = new ArrayList<>();
     private List<TagChip> selectedTagChips = new ArrayList<>();
+    private List<TagChip> availableTagChips = new ArrayList<>();
     
     private int dialogX;
     private int dialogY;
+    private int inputY;
     private int tagsAreaY;
     private int scrollOffset = 0;
     private int maxScrollOffset = 0;
     
-    public SaveSchematicDialog(Screen parent, Consumer<SaveResult> onSave, Consumer<Void> onCancel) {
-        super(Component.literal("Save Schematic"));
+    public EditTagsDialog(Screen parent, SchematicFile schematicFile, Consumer<Boolean> onClose) {
+        super(Component.literal("Edit Tags"));
         this.parent = parent;
-        this.onSave = onSave;
-        this.onCancel = onCancel;
+        this.schematicFile = schematicFile;
+        this.onClose = onClose;
+        
+        this.currentTags = new ArrayList<>(schematicFile.getTags());
     }
     
     @Override
@@ -55,93 +57,72 @@ public class SaveSchematicDialog extends Screen {
         dialogX = (this.width - DIALOG_WIDTH) / 2;
         dialogY = (this.height - DIALOG_HEIGHT) / 2;
         
-        int inputWidth = DIALOG_WIDTH - 40;
-        int inputX = dialogX + 20;
-        int inputY = dialogY + 30;
+        int inputX = dialogX + 15;
+        int inputWidth = DIALOG_WIDTH - 30;
         
-        nameInput = new EditBox(
-            this.font,
-            inputX,
-            inputY,
-            inputWidth,
-            20,
-            Component.literal("Schematic Name")
-        );
-        nameInput.setMaxLength(50);
-        nameInput.setHint(Component.literal("Enter schematic name..."));
-        nameInput.setResponder(text -> updateSaveButton());
-        this.addRenderableWidget(nameInput);
+        inputY = dialogY + 30;
+        tagsAreaY = inputY + 25;
         
-        descriptionInput = new EditBox(
-            this.font,
-            inputX,
-            inputY + 30,
-            inputWidth,
-            20,
-            Component.literal("Description")
-        );
-        descriptionInput.setMaxLength(100);
-        descriptionInput.setHint(Component.literal("Optional description..."));
-        this.addRenderableWidget(descriptionInput);
-        
-        tagsAreaY = inputY + 60;
-        
-        int tagInputWidth = inputWidth - 50;
+        int tagInputWidth = inputWidth - 45;
         tagInput = new EditBox(
             this.font,
             inputX,
-            tagsAreaY + 13,
+            inputY,
             tagInputWidth,
             18,
             Component.literal("Tag")
         );
         tagInput.setMaxLength(30);
-        tagInput.setHint(Component.literal("Add tag..."));
+        tagInput.setHint(Component.literal("Add new tag..."));
         this.addRenderableWidget(tagInput);
         
         addTagButton = Button.builder(
             Component.literal("+"),
             button -> onAddTagPressed()
         )
-        .bounds(inputX + tagInputWidth + 5, tagsAreaY + 13, 40, 18)
+        .bounds(inputX + tagInputWidth + 5, inputY, 35, 18)
         .build();
         this.addRenderableWidget(addTagButton);
         
         rebuildTagChips();
         
         int buttonY = dialogY + DIALOG_HEIGHT - 35;
-        int buttonWidth = 120;
+        int buttonWidth = 100;
         
         saveButton = Button.builder(
             Component.literal("Save"),
             button -> onSavePressed()
         )
-        .bounds(dialogX + 20, buttonY, buttonWidth, 20)
+        .bounds(dialogX + 15, buttonY, buttonWidth, 20)
         .build();
-        saveButton.active = false;
         this.addRenderableWidget(saveButton);
         
         cancelButton = Button.builder(
             Component.literal("Cancel"),
             button -> onCancelPressed()
         )
-        .bounds(dialogX + DIALOG_WIDTH - buttonWidth - 20, buttonY, buttonWidth, 20)
+        .bounds(dialogX + DIALOG_WIDTH - buttonWidth - 15, buttonY, buttonWidth, 20)
         .build();
         this.addRenderableWidget(cancelButton);
         
-        setInitialFocus(nameInput);
+        setInitialFocus(tagInput);
     }
     
     private void rebuildTagChips() {
-        availableTagChips.clear();
         selectedTagChips.clear();
+        availableTagChips.clear();
         
-        int inputX = dialogX + 20;
+        int inputX = dialogX + 15;
+        int maxWidth = DIALOG_WIDTH - 40;
+        
         int chipY = 0;
-        int maxWidth = DIALOG_WIDTH - 50;
-        
         int currentX = inputX;
-        for (String tag : selectedTags) {
+        
+        if (!currentTags.isEmpty()) {
+            chipY = 12;
+        }
+        
+        for (String tag : currentTags) {
             int chipWidth = this.font.width(tag) + TAG_CHIP_PADDING * 2 + 12;
             if (currentX + chipWidth > inputX + maxWidth && currentX != inputX) {
                 currentX = inputX;
@@ -151,13 +132,17 @@ public class SaveSchematicDialog extends Screen {
             currentX += chipWidth + TAG_CHIP_SPACING;
         }
         
-        if (!selectedTags.isEmpty()) {
-            chipY += TAG_CHIP_HEIGHT + TAG_CHIP_SPACING + 5;
+        if (!currentTags.isEmpty()) {
+            chipY += TAG_CHIP_HEIGHT + TAG_CHIP_SPACING + 18;
+        } else {
+            chipY = 12;
         }
         currentX = inputX;
         
+        int availableStartY = chipY;
+        
         for (String tag : TagManager.getAllTags()) {
-            if (selectedTags.contains(tag)) continue;
+            if (currentTags.contains(tag)) continue;
             
             int chipWidth = this.font.width(tag) + TAG_CHIP_PADDING * 2 + 8;
             if (currentX + chipWidth > inputX + maxWidth && currentX != inputX) {
@@ -175,35 +160,27 @@ public class SaveSchematicDialog extends Screen {
     
     private void onAddTagPressed() {
         String tag = tagInput.getValue().trim().toLowerCase();
-        if (!tag.isEmpty() && !selectedTags.contains(tag)) {
-            selectedTags.add(tag);
+        if (!tag.isEmpty() && !currentTags.contains(tag)) {
+            currentTags.add(tag);
             TagManager.ensureTagExists(tag);
             tagInput.setValue("");
             rebuildTagChips();
         }
     }
     
-    private void updateSaveButton() {
-        saveButton.active = !nameInput.getValue().trim().isEmpty();
-    }
-    
     private void onSavePressed() {
-        String name = nameInput.getValue().trim();
-        String description = descriptionInput.getValue().trim();
-        
-        if (!name.isEmpty()) {
-            SaveResult result = new SaveResult(
-                name,
-                description.isEmpty() ? null : description,
-                new ArrayList<>(selectedTags)
-            );
-            onSave.accept(result);
-            minecraft.setScreen(parent);
+        boolean success = schematicFile.setTags(currentTags);
+        if (success) {
+            System.out.println("Updated tags for: " + schematicFile.getName());
+        } else {
+            System.err.println("Failed to update tags for: " + schematicFile.getName());
         }
+        onClose.accept(success);
+        minecraft.setScreen(parent);
     }
     
     private void onCancelPressed() {
-        onCancel.accept(null);
+        onClose.accept(false);
         minecraft.setScreen(parent);
     }
     
@@ -218,65 +195,86 @@ public class SaveSchematicDialog extends Screen {
         graphics.fill(dialogX, dialogY, dialogX + 2, dialogY + DIALOG_HEIGHT, 0xFF4A4A4A);
         graphics.fill(dialogX + DIALOG_WIDTH - 2, dialogY, dialogX + DIALOG_WIDTH, dialogY + DIALOG_HEIGHT, 0xFF4A4A4A);
         
+        graphics.fill(dialogX + 10, tagsAreaY, dialogX + DIALOG_WIDTH - 10, tagsAreaY + TAGS_AREA_HEIGHT, 0xFF1A1A1A);
+        
+        super.render(graphics, mouseX, mouseY, partialTick);
+        
+        String title = "Edit Tags: " + schematicFile.getName();
+        if (title.length() > 35) {
+            title = title.substring(0, 32) + "...";
+        }
         graphics.drawString(
             this.font,
-            "Save Schematic",
-            dialogX + 20,
+            title,
+            dialogX + 15,
             dialogY + 10,
             0xFFFFFF,
-            false
+            true
         );
         
-        graphics.drawString(
-            this.font,
-            "Tags:",
-            dialogX + 20,
-            tagsAreaY + 3,
-            0xAAAAAA,
-            false
-        );
+        graphics.enableScissor(dialogX + 10, tagsAreaY, dialogX + DIALOG_WIDTH - 10, tagsAreaY + TAGS_AREA_HEIGHT);
         
-        int tagsRenderY = tagsAreaY + 35;
-        graphics.fill(dialogX + 15, tagsRenderY, dialogX + DIALOG_WIDTH - 15, tagsRenderY + TAGS_AREA_HEIGHT, 0xFF1A1A1A);
+        int offsetY = tagsAreaY - scrollOffset;
         
-        graphics.enableScissor(dialogX + 15, tagsRenderY, dialogX + DIALOG_WIDTH - 15, tagsRenderY + TAGS_AREA_HEIGHT);
+        if (!currentTags.isEmpty()) {
+            graphics.drawString(
+                this.font,
+                "Current tags (click to remove):",
+                dialogX + 15,
+                offsetY + 2,
+                0x888888,
+                true
+            );
+        }
         
         for (TagChip chip : selectedTagChips) {
-            renderTagChip(graphics, chip, tagsRenderY, mouseX, mouseY);
+            renderTagChip(graphics, chip, offsetY, mouseX, mouseY);
+        }
+        
+        if (!availableTagChips.isEmpty()) {
+            int labelY = selectedTagChips.isEmpty() ? 2 : 
+                selectedTagChips.get(selectedTagChips.size() - 1).y + TAG_CHIP_HEIGHT + 8;
+            graphics.drawString(
+                this.font,
+                "Available tags (click to add):",
+                dialogX + 15,
+                offsetY + labelY,
+                0x888888,
+                true
+            );
         }
         
         for (TagChip chip : availableTagChips) {
-            renderTagChip(graphics, chip, tagsRenderY, mouseX, mouseY);
+            renderTagChip(graphics, chip, offsetY, mouseX, mouseY);
         }
         
         graphics.disableScissor();
         
         if (maxScrollOffset > 0) {
-            int scrollbarX = dialogX + DIALOG_WIDTH - 20;
+            int scrollbarX = dialogX + DIALOG_WIDTH - 16;
+            int scrollbarY = tagsAreaY;
             int scrollbarHeight = TAGS_AREA_HEIGHT;
             
-            graphics.fill(scrollbarX, tagsRenderY, scrollbarX + 4, tagsRenderY + scrollbarHeight, 0xFF333333);
+            graphics.fill(scrollbarX, scrollbarY, scrollbarX + 4, scrollbarY + scrollbarHeight, 0xFF333333);
             
             float scrollRatio = (float) scrollOffset / maxScrollOffset;
             int thumbHeight = Math.max(20, (int) ((float) TAGS_AREA_HEIGHT / (TAGS_AREA_HEIGHT + maxScrollOffset) * scrollbarHeight));
-            int thumbY = tagsRenderY + (int) (scrollRatio * (scrollbarHeight - thumbHeight));
+            int thumbY = scrollbarY + (int) (scrollRatio * (scrollbarHeight - thumbHeight));
             
             graphics.fill(scrollbarX, thumbY, scrollbarX + 4, thumbY + thumbHeight, 0xFF666666);
         }
-        
-        super.render(graphics, mouseX, mouseY, partialTick);
     }
     
-    private void renderTagChip(GuiGraphics graphics, TagChip chip, int tagsRenderY, int mouseX, int mouseY) {
-        int renderY = tagsRenderY + chip.y - scrollOffset;
+    private void renderTagChip(GuiGraphics graphics, TagChip chip, int offsetY, int mouseX, int mouseY) {
+        int renderY = offsetY + chip.y;
         
         boolean hovered = mouseX >= chip.x && mouseX <= chip.x + chip.width &&
                          mouseY >= renderY && mouseY <= renderY + TAG_CHIP_HEIGHT &&
-                         mouseY >= tagsRenderY && mouseY <= tagsRenderY + TAGS_AREA_HEIGHT;
+                         mouseY >= tagsAreaY && mouseY <= tagsAreaY + TAGS_AREA_HEIGHT;
         
         int bgColor = chip.selected ? 
-            (hovered ? 0xFF4A7A4A : 0xFF3A6A3A) : 
-            (hovered ? 0xFF4A4A5A : 0xFF3A3A4A);
+            (hovered ? 0xFF6A3A3A : 0xFF4A6A4A) : 
+            (hovered ? 0xFF4A4A6A : 0xFF3A3A4A);
         
         graphics.fill(chip.x, renderY, chip.x + chip.width, renderY + TAG_CHIP_HEIGHT, bgColor);
         
@@ -290,49 +288,43 @@ public class SaveSchematicDialog extends Screen {
             chip.x + TAG_CHIP_PADDING,
             renderY + 4,
             chip.selected ? 0xFFFFFF : 0xCCCCCC,
-            false
+            true
         );
     }
     
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        boolean handled = super.mouseClicked(mouseX, mouseY, button);
-        if (handled) {
-            return true;
-        }
-        
-        int tagsRenderY = tagsAreaY + 35;
-        
-        if (button == 0 && mouseY >= tagsRenderY && mouseY <= tagsRenderY + TAGS_AREA_HEIGHT) {
+        if (button == 0 && mouseY >= tagsAreaY && mouseY <= tagsAreaY + TAGS_AREA_HEIGHT) {
+            int offsetY = tagsAreaY - scrollOffset;
+            
             for (TagChip chip : selectedTagChips) {
-                int renderY = tagsRenderY + chip.y - scrollOffset;
+                int renderY = offsetY + chip.y;
                 if (mouseX >= chip.x && mouseX <= chip.x + chip.width &&
                     mouseY >= renderY && mouseY <= renderY + TAG_CHIP_HEIGHT) {
-                    selectedTags.remove(chip.tag);
+                    currentTags.remove(chip.tag);
                     rebuildTagChips();
                     return true;
                 }
             }
             
             for (TagChip chip : availableTagChips) {
-                int renderY = tagsRenderY + chip.y - scrollOffset;
+                int renderY = offsetY + chip.y;
                 if (mouseX >= chip.x && mouseX <= chip.x + chip.width &&
                     mouseY >= renderY && mouseY <= renderY + TAG_CHIP_HEIGHT) {
-                    selectedTags.add(chip.tag);
+                    currentTags.add(chip.tag);
                     rebuildTagChips();
                     return true;
                 }
             }
         }
         
-        return false;
+        return super.mouseClicked(mouseX, mouseY, button);
     }
     
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        int tagsRenderY = tagsAreaY + 35;
-        if (mouseX >= dialogX + 15 && mouseX <= dialogX + DIALOG_WIDTH - 15 &&
-            mouseY >= tagsRenderY && mouseY <= tagsRenderY + TAGS_AREA_HEIGHT) {
+        if (mouseX >= dialogX + 10 && mouseX <= dialogX + DIALOG_WIDTH - 10 &&
+            mouseY >= tagsAreaY && mouseY <= tagsAreaY + TAGS_AREA_HEIGHT) {
             
             scrollOffset = (int) Math.max(0, Math.min(maxScrollOffset, scrollOffset - scrollY * 10));
             return true;
@@ -349,9 +341,6 @@ public class SaveSchematicDialog extends Screen {
         if (keyCode == 257) {
             if (tagInput.isFocused() && !tagInput.getValue().trim().isEmpty()) {
                 onAddTagPressed();
-                return true;
-            } else if (saveButton.active) {
-                onSavePressed();
                 return true;
             }
         }
@@ -382,17 +371,4 @@ public class SaveSchematicDialog extends Screen {
             this.selected = selected;
         }
     }
-    
-    public static class SaveResult {
-        public final String name;
-        public final String description;
-        public final List<String> tags;
-        
-        public SaveResult(String name, String description, List<String> tags) {
-            this.name = name;
-            this.description = description;
-            this.tags = tags;
-        }
-    }
 }
-

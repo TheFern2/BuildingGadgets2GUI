@@ -5,6 +5,7 @@ import dev.thefern.buildinggadgets2gui.client.RowActionButtons;
 import dev.thefern.buildinggadgets2gui.client.TEDataClientCache;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.CreateFolderDialog;
+import dev.thefern.buildinggadgets2gui.client.dialogs.ManageTagsDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.MaterialListDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.SaveSchematicDialog;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicFile;
@@ -40,6 +41,7 @@ public class SchematicsTab extends TabPanel {
     private Button rootButton;
     private Button upButton;
     private Button createFolderButton;
+    private Button manageTagsButton;
     private Button copyFromToolButton;
     private Button saveButton;
     private Button deleteButton;
@@ -130,6 +132,17 @@ public class SchematicsTab extends TabPanel {
         ))
         .build();
         widgets.add(createFolderButton);
+        
+        manageTagsButton = Button.builder(
+            Component.literal("#"),
+            button -> onManageTagsPressed()
+        )
+        .bounds(x + PADDING + (navButtonWidth + 2) * 3, navButtonY, navButtonWidth, 20)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Manage tags")
+        ))
+        .build();
+        widgets.add(manageTagsButton);
         
         int listY = navButtonY + 25;
         schematicsList = new SchematicsList(
@@ -439,6 +452,32 @@ public class SchematicsTab extends TabPanel {
                     0xFFFFFF,
                     false
                 );
+                textY += 15;
+                
+                if (metadata.tags != null && !metadata.tags.isEmpty()) {
+                    guiGraphics.drawString(
+                        Minecraft.getInstance().font,
+                        "Tags:",
+                        textX,
+                        textY,
+                        0xAAAAAA,
+                        false
+                    );
+                    textY += 10;
+                    
+                    String tagsStr = String.join(", ", metadata.tags);
+                    if (tagsStr.length() > 20) {
+                        tagsStr = tagsStr.substring(0, 17) + "...";
+                    }
+                    guiGraphics.drawString(
+                        Minecraft.getInstance().font,
+                        tagsStr,
+                        textX,
+                        textY,
+                        0x88AAFF,
+                        false
+                    );
+                }
             }
         } else {
             int textY = infoY + LIST_HEIGHT / 2;
@@ -503,6 +542,11 @@ public class SchematicsTab extends TabPanel {
         } else {
             System.err.println("Failed to create folder: " + folderName);
         }
+    }
+    
+    private void onManageTagsPressed() {
+        ManageTagsDialog dialog = new ManageTagsDialog(parentScreen);
+        Minecraft.getInstance().setScreen(dialog);
     }
     
     private void onSavePressed() {
