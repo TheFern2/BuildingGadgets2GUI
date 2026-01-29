@@ -4,6 +4,7 @@ import dev.thefern.buildinggadgets2gui.client.ClipboardUtils;
 import dev.thefern.buildinggadgets2gui.client.TEDataClientCache;
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.CreateFolderDialog;
+import dev.thefern.buildinggadgets2gui.client.dialogs.MaterialListDialog;
 import dev.thefern.buildinggadgets2gui.client.dialogs.SaveSchematicDialog;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicFile;
 import dev.thefern.buildinggadgets2gui.client.schematics.SchematicFolder;
@@ -43,6 +44,8 @@ public class SchematicsTab extends TabPanel {
     private Button deleteButton;
     private Button sendToToolButton;
     private Button clearClipboardButton;
+    
+    private static final int CLIPBOARD_MATERIAL_BUTTON_SIZE = 14;
     
     private String clipboardTimestamp = null;
     private int clipboardHighlightTicks = 0;
@@ -85,13 +88,13 @@ public class SchematicsTab extends TabPanel {
             Component.literal("Clear"),
             button -> onClearClipboardPressed()
         )
-        .bounds(x + PADDING + 290, clipboardRowY, 45, 18)
+        .bounds(x + PADDING + 285, clipboardRowY, 45, 18)
         .tooltip(net.minecraft.client.gui.components.Tooltip.create(
             Component.literal("Clear clipboard data")
         ))
         .build();
         widgets.add(clearClipboardButton);
-        updateClearButtonState();
+        updateClipboardButtonStates();
         
         int navButtonY = clipboardRowY + CLIPBOARD_ROW_HEIGHT + 3;
         int navButtonWidth = 38;
@@ -161,14 +164,26 @@ public class SchematicsTab extends TabPanel {
         clipboardTimestamp = sdf.format(new Date());
         clipboardHighlightTicks = HIGHLIGHT_DURATION;
         updateSaveButtonText();
-        updateClearButtonState();
+        updateClipboardButtonStates();
     }
     
     private void onClearClipboardPressed() {
         ClipboardUtils.clearClipboard();
         clipboardTimestamp = null;
         updateSaveButtonText();
-        updateClearButtonState();
+        updateClipboardButtonStates();
+    }
+    
+    private void onClipboardMaterialPressed() {
+        ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
+        if (clipboardBlocks != null && !clipboardBlocks.isEmpty()) {
+            MaterialListDialog dialog = new MaterialListDialog(
+                Minecraft.getInstance().screen,
+                "Materials: Clipboard",
+                clipboardBlocks
+            );
+            Minecraft.getInstance().setScreen(dialog);
+        }
     }
     
     private void updateSaveButtonText() {
@@ -184,11 +199,21 @@ public class SchematicsTab extends TabPanel {
         }
     }
     
-    private void updateClearButtonState() {
-        if (clearClipboardButton == null) return;
-        
+    private void updateClipboardButtonStates() {
         ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
-        clearClipboardButton.active = clipboardBlocks != null && !clipboardBlocks.isEmpty();
+        boolean hasClipboardData = clipboardBlocks != null && !clipboardBlocks.isEmpty();
+        
+        if (clearClipboardButton != null) {
+            clearClipboardButton.active = hasClipboardData;
+        }
+    }
+    
+    private int[] getClipboardMaterialButtonBounds() {
+        int buttonY = y + 5;
+        int clipboardRowY = buttonY + 25;
+        int buttonX = x + PADDING + 260;
+        int buttonYPos = clipboardRowY + 4;
+        return new int[]{buttonX, buttonYPos, CLIPBOARD_MATERIAL_BUTTON_SIZE};
     }
     
     @Override
@@ -200,14 +225,18 @@ public class SchematicsTab extends TabPanel {
             updateActionButtons();
         }
         updateSaveButtonText();
-        updateClearButtonState();
+        updateClipboardButtonStates();
     }
     
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!isActive) return;
         
-        renderClipboardInfo(guiGraphics);
+        if (schematicsList != null) {
+            schematicsList.clearPendingTooltip();
+        }
+        
+        renderClipboardInfo(guiGraphics, mouseX, mouseY);
         
         int buttonY = y + 5;
         int clipboardRowY = buttonY + 25;
@@ -223,6 +252,10 @@ public class SchematicsTab extends TabPanel {
         
         renderInfoPanel(guiGraphics, listY);
         
+        if (schematicsList != null) {
+            schematicsList.renderPendingTooltip(guiGraphics);
+        }
+        
         String currentPath = "Path: " + SchematicManager.getCurrentPath();
         guiGraphics.drawString(
             Minecraft.getInstance().font,
@@ -234,7 +267,7 @@ public class SchematicsTab extends TabPanel {
         );
     }
     
-    private void renderClipboardInfo(GuiGraphics guiGraphics) {
+    private void renderClipboardInfo(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         int buttonY = y + 5;
         int clipboardRowY = buttonY + 25;
         int rowX = x + PADDING;
@@ -285,6 +318,29 @@ public class SchematicsTab extends TabPanel {
                     false
                 );
             }
+            
+            int[] mBounds = getClipboardMaterialButtonBounds();
+            boolean isHoveringM = mouseX >= mBounds[0] && mouseX <= mBounds[0] + mBounds[2] &&
+                                  mouseY >= mBounds[1] && mouseY <= mBounds[1] + mBounds[2];
+            
+            guiGraphics.fill(
+                mBounds[0], 
+                mBounds[1], 
+                mBounds[0] + mBounds[2], 
+                mBounds[1] + mBounds[2], 
+                isHoveringM ? 0xFF6688FF : 0xFF4466AA
+            );
+            
+            String mText = "M";
+            int mTextWidth = Minecraft.getInstance().font.width(mText);
+            guiGraphics.drawString(
+                Minecraft.getInstance().font,
+                mText,
+                mBounds[0] + (mBounds[2] - mTextWidth) / 2,
+                mBounds[1] + 3,
+                0xFFFFFF,
+                false
+            );
         } else {
             guiGraphics.drawString(
                 Minecraft.getInstance().font,
@@ -584,7 +640,19 @@ public class SchematicsTab extends TabPanel {
     
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (schematicsList != null && isActive) {
+        if (!isActive || button != 0) return false;
+        
+        ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
+        if (clipboardBlocks != null && !clipboardBlocks.isEmpty()) {
+            int[] mBounds = getClipboardMaterialButtonBounds();
+            if (mouseX >= mBounds[0] && mouseX <= mBounds[0] + mBounds[2] &&
+                mouseY >= mBounds[1] && mouseY <= mBounds[1] + mBounds[2]) {
+                onClipboardMaterialPressed();
+                return true;
+            }
+        }
+        
+        if (schematicsList != null) {
             return schematicsList.mouseClicked(mouseX, mouseY, button);
         }
         return false;
@@ -617,7 +685,7 @@ public class SchematicsTab extends TabPanel {
         }
         
         updateSaveButtonText();
-        updateClearButtonState();
+        updateClipboardButtonStates();
     }
 }
 

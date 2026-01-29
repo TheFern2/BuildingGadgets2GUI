@@ -1,6 +1,7 @@
 package dev.thefern.buildinggadgets2gui.client.schematics;
 
 import dev.thefern.buildinggadgets2gui.client.dialogs.ConfirmationDialog;
+import dev.thefern.buildinggadgets2gui.client.dialogs.MaterialListDialog;
 import dev.thefern.buildinggadgets2gui.client.tabs.SchematicsTab;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -14,10 +15,31 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
     private final SchematicsTab parent;
     private SchematicFolder currentFolder;
     
+    private Component pendingTooltip = null;
+    private int tooltipX = 0;
+    private int tooltipY = 0;
+    
     public SchematicsList(Minecraft minecraft, int width, int height, int y, int itemHeight, SchematicsTab parent) {
         super(minecraft, width, height, y, itemHeight);
         this.parent = parent;
         refreshList();
+    }
+    
+    public void setPendingTooltip(Component tooltip, int x, int y) {
+        this.pendingTooltip = tooltip;
+        this.tooltipX = x;
+        this.tooltipY = y;
+    }
+    
+    public void clearPendingTooltip() {
+        this.pendingTooltip = null;
+    }
+    
+    public void renderPendingTooltip(GuiGraphics graphics) {
+        if (pendingTooltip != null) {
+            graphics.renderTooltip(Minecraft.getInstance().font, pendingTooltip, tooltipX, tooltipY);
+            pendingTooltip = null;
+        }
     }
     
     public void refreshList() {
@@ -260,6 +282,36 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                 false
             );
             
+            int materialButtonSize = 12;
+            int materialButtonX = left + width - materialButtonSize - 8;
+            int materialButtonY = top + 6;
+            
+            boolean isHoveringMaterial = mouseX >= materialButtonX && mouseX <= materialButtonX + materialButtonSize &&
+                                         mouseY >= materialButtonY && mouseY <= materialButtonY + materialButtonSize;
+            
+            graphics.fill(
+                materialButtonX,
+                materialButtonY,
+                materialButtonX + materialButtonSize,
+                materialButtonY + materialButtonSize,
+                isHoveringMaterial ? 0xFF6688FF : 0xFF4466AA
+            );
+            
+            String mText = "M";
+            int mTextWidth = Minecraft.getInstance().font.width(mText);
+            graphics.drawString(
+                Minecraft.getInstance().font,
+                mText,
+                materialButtonX + (materialButtonSize - mTextWidth) / 2,
+                materialButtonY + 2,
+                0xFFFFFF,
+                false
+            );
+            
+            if (isHoveringMaterial) {
+                setPendingTooltip(Component.literal("Material list"), mouseX, mouseY);
+            }
+            
             String fileIcon = "📄";
             String fileName = file.getName();
             
@@ -302,10 +354,33 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                     return true;
                 }
                 
+                int materialButtonSize = 12;
+                int materialButtonX = lastRenderedLeft + getRowWidth() - materialButtonSize - 8;
+                int materialButtonY = lastRenderedTop + 6;
+                
+                if (mouseX >= materialButtonX && mouseX <= materialButtonX + materialButtonSize &&
+                    mouseY >= materialButtonY && mouseY <= materialButtonY + materialButtonSize) {
+                    
+                    onMaterialButtonClicked();
+                    return true;
+                }
+                
                 setSelected(this);
                 return true;
             }
             return false;
+        }
+        
+        private void onMaterialButtonClicked() {
+            SchematicFile.SchematicData data = file.loadData();
+            if (data != null && data.blocks != null) {
+                MaterialListDialog dialog = new MaterialListDialog(
+                    Minecraft.getInstance().screen,
+                    "Materials: " + file.getName(),
+                    data.blocks
+                );
+                Minecraft.getInstance().setScreen(dialog);
+            }
         }
         
         private void onDeleteButtonClicked() {

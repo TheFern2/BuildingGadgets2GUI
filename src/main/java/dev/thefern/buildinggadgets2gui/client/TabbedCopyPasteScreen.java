@@ -23,6 +23,7 @@ public class TabbedCopyPasteScreen extends Screen {
     private int leftPos;
     private int topPos;
     
+    private static TabType lastActiveTab = TabType.SCHEMATICS;
     private TabType currentTab = TabType.SCHEMATICS;
     private TabPanel schematicsTab;
     private TabPanel historyTab;
@@ -164,17 +165,20 @@ public class TabbedCopyPasteScreen extends Screen {
             }
         }
         
-        schematicsTab.onTabActivated();
+        currentTab = lastActiveTab;
+        schematicsTab.onTabDeactivated();
         historyTab.onTabDeactivated();
         trashTab.onTabDeactivated();
         settingsTab.onTabDeactivated();
         debugTab.onTabDeactivated();
+        getCurrentTabPanel().onTabActivated();
     }
     
     private void switchTab(TabType tab) {
         if (currentTab != tab) {
             getCurrentTabPanel().onTabDeactivated();
             currentTab = tab;
+            lastActiveTab = tab;
             getCurrentTabPanel().onTabActivated();
         }
     }
