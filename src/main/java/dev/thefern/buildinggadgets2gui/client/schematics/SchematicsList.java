@@ -201,6 +201,8 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
     
     public class FileEntry extends Entry {
         private final SchematicFile file;
+        private int lastRenderedTop;
+        private int lastRenderedLeft;
         
         public FileEntry(SchematicFile file) {
             this.file = file;
@@ -229,13 +231,42 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
         public void render(GuiGraphics graphics, int index, int top, int left, int width, int height,
                           int mouseX, int mouseY, boolean hovered, float partialTick) {
             
+            this.lastRenderedTop = top;
+            this.lastRenderedLeft = left;
+            
+            int deleteButtonSize = 12;
+            int deleteButtonX = left + 2;
+            int deleteButtonY = top + 6;
+            
+            boolean isHoveringDelete = mouseX >= deleteButtonX && mouseX <= deleteButtonX + deleteButtonSize &&
+                                       mouseY >= deleteButtonY && mouseY <= deleteButtonY + deleteButtonSize;
+            
+            graphics.fill(
+                deleteButtonX, 
+                deleteButtonY, 
+                deleteButtonX + deleteButtonSize, 
+                deleteButtonY + deleteButtonSize, 
+                isHoveringDelete ? 0xFFFF4444 : 0xFF883333
+            );
+            
+            String xText = "X";
+            int textWidth = Minecraft.getInstance().font.width(xText);
+            graphics.drawString(
+                Minecraft.getInstance().font,
+                xText,
+                deleteButtonX + (deleteButtonSize - textWidth) / 2,
+                deleteButtonY + 2,
+                0xFFFFFF,
+                false
+            );
+            
             String fileIcon = "📄";
             String fileName = file.getName();
             
             graphics.drawString(
                 Minecraft.getInstance().font,
                 fileIcon + " " + fileName,
-                left + 5,
+                left + 20,
                 top + 2,
                 hovered ? 0xFFFFFF : 0xCCCCCC,
                 false
@@ -249,7 +280,7 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
                 graphics.drawString(
                     Minecraft.getInstance().font,
                     info,
-                    left + 5,
+                    left + 20,
                     top + 12,
                     0x888888,
                     false
@@ -260,10 +291,44 @@ public class SchematicsList extends ObjectSelectionList<SchematicsList.Entry> {
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
             if (button == 0) {
+                int deleteButtonSize = 12;
+                int deleteButtonX = lastRenderedLeft + 2;
+                int deleteButtonY = lastRenderedTop + 6;
+                
+                if (mouseX >= deleteButtonX && mouseX <= deleteButtonX + deleteButtonSize &&
+                    mouseY >= deleteButtonY && mouseY <= deleteButtonY + deleteButtonSize) {
+                    
+                    onDeleteButtonClicked();
+                    return true;
+                }
+                
                 setSelected(this);
                 return true;
             }
             return false;
+        }
+        
+        private void onDeleteButtonClicked() {
+            String fileName = file.getName();
+            
+            ConfirmationDialog dialog = new ConfirmationDialog(
+                parent.getParentScreen(),
+                "Delete Schematic",
+                "Delete '" + fileName + "'?",
+                confirmed -> {
+                    if (confirmed) {
+                        boolean success = SchematicManager.deleteFile(file);
+                        if (success) {
+                            System.out.println("Deleted file: " + fileName);
+                            refreshList();
+                            parent.onNavigate();
+                        } else {
+                            System.err.println("Failed to delete file: " + fileName);
+                        }
+                    }
+                }
+            );
+            Minecraft.getInstance().setScreen(dialog);
         }
     }
 }

@@ -16,6 +16,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.core.BlockPos;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -26,9 +27,10 @@ import java.util.UUID;
 public class SchematicsTab extends TabPanel {
     
     private static final int LIST_WIDTH = 240;
-    private static final int LIST_HEIGHT = 140;
+    private static final int LIST_HEIGHT = 120;
     private static final int INFO_PANEL_WIDTH = 140;
     private static final int PADDING = 10;
+    private static final int CLIPBOARD_ROW_HEIGHT = 22;
     
     private ClipboardUtils.CopyData copyData = new ClipboardUtils.CopyData();
     private SchematicsList schematicsList;
@@ -40,6 +42,11 @@ public class SchematicsTab extends TabPanel {
     private Button saveButton;
     private Button deleteButton;
     private Button sendToToolButton;
+    private Button clearClipboardButton;
+    
+    private String clipboardTimestamp = null;
+    private int clipboardHighlightTicks = 0;
+    private static final int HIGHLIGHT_DURATION = 40;
     
     public SchematicsTab(Screen parentScreen, int x, int y, int width, int height) {
         super(parentScreen, x, y, width, height);
@@ -53,7 +60,7 @@ public class SchematicsTab extends TabPanel {
         
         copyFromToolButton = Button.builder(
             Component.literal("Copy from Tool"),
-            button -> ClipboardUtils.copyFromTool()
+            button -> onCopyFromToolPressed()
         )
         .bounds(x + PADDING, buttonY, 120, 20)
         .tooltip(net.minecraft.client.gui.components.Tooltip.create(
@@ -63,7 +70,30 @@ public class SchematicsTab extends TabPanel {
         copyFromToolButton.active = copyData.hasCopyData;
         widgets.add(copyFromToolButton);
         
-        int navButtonY = buttonY + 25;
+        saveButton = Button.builder(
+            Component.literal("Save Schematic"),
+            button -> onSavePressed()
+        )
+        .bounds(x + PADDING + 215, buttonY, 120, 20)
+        .build();
+        widgets.add(saveButton);
+        updateSaveButtonText();
+        
+        int clipboardRowY = buttonY + 25;
+        
+        clearClipboardButton = Button.builder(
+            Component.literal("Clear"),
+            button -> onClearClipboardPressed()
+        )
+        .bounds(x + PADDING + 290, clipboardRowY, 45, 18)
+        .tooltip(net.minecraft.client.gui.components.Tooltip.create(
+            Component.literal("Clear clipboard data")
+        ))
+        .build();
+        widgets.add(clearClipboardButton);
+        updateClearButtonState();
+        
+        int navButtonY = clipboardRowY + CLIPBOARD_ROW_HEIGHT + 3;
         int navButtonWidth = 38;
         
         rootButton = Button.builder(
@@ -100,15 +130,7 @@ public class SchematicsTab extends TabPanel {
         .build();
         widgets.add(createFolderButton);
         
-        saveButton = Button.builder(
-            Component.literal("Save Schematic"),
-            button -> onSavePressed()
-        )
-        .bounds(x + PADDING + 215, buttonY, 120, 20)
-        .build();
-        widgets.add(saveButton);
-        
-        int listY = y + 55;
+        int listY = navButtonY + 25;
         schematicsList = new SchematicsList(
             Minecraft.getInstance(),
             LIST_WIDTH,
@@ -119,27 +141,54 @@ public class SchematicsTab extends TabPanel {
         );
         schematicsList.setX(x + PADDING);
         
-        int buttonX = x + PADDING + LIST_WIDTH + PADDING + 5;
-        int buttonWidth = INFO_PANEL_WIDTH - 10;
-        int infoButtonY = y + 55 + LIST_HEIGHT + 10;
-        
-        deleteButton = Button.builder(
-            Component.literal("Delete"),
-            button -> onDeletePressed()
-        )
-        .bounds(buttonX, infoButtonY, buttonWidth, 20)
-        .build();
-        deleteButton.active = false;
-        widgets.add(deleteButton);
+        int sendButtonWidth = 120;
+        int sendButtonX = x + width - sendButtonWidth - PADDING;
+        int sendButtonY = y + height - 30;
         
         sendToToolButton = Button.builder(
             Component.literal("Send to Tool"),
             button -> onSendToToolPressed()
         )
-        .bounds(buttonX, infoButtonY + 24, buttonWidth, 20)
+        .bounds(sendButtonX, sendButtonY, sendButtonWidth, 20)
         .build();
         sendToToolButton.active = false;
         widgets.add(sendToToolButton);
+    }
+    
+    private void onCopyFromToolPressed() {
+        ClipboardUtils.copyFromTool();
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        clipboardTimestamp = sdf.format(new Date());
+        clipboardHighlightTicks = HIGHLIGHT_DURATION;
+        updateSaveButtonText();
+        updateClearButtonState();
+    }
+    
+    private void onClearClipboardPressed() {
+        ClipboardUtils.clearClipboard();
+        clipboardTimestamp = null;
+        updateSaveButtonText();
+        updateClearButtonState();
+    }
+    
+    private void updateSaveButtonText() {
+        if (saveButton == null) return;
+        
+        ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
+        if (clipboardBlocks != null && !clipboardBlocks.isEmpty()) {
+            saveButton.setMessage(Component.literal("Save Schematic (" + clipboardBlocks.size() + ")"));
+            saveButton.active = true;
+        } else {
+            saveButton.setMessage(Component.literal("Save Schematic"));
+            saveButton.active = false;
+        }
+    }
+    
+    private void updateClearButtonState() {
+        if (clearClipboardButton == null) return;
+        
+        ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
+        clearClipboardButton.active = clipboardBlocks != null && !clipboardBlocks.isEmpty();
     }
     
     @Override
@@ -150,14 +199,21 @@ public class SchematicsTab extends TabPanel {
             updateNavigationButtons();
             updateActionButtons();
         }
+        updateSaveButtonText();
+        updateClearButtonState();
     }
     
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!isActive) return;
         
+        renderClipboardInfo(guiGraphics);
+        
+        int buttonY = y + 5;
+        int clipboardRowY = buttonY + 25;
+        int navButtonY = clipboardRowY + CLIPBOARD_ROW_HEIGHT + 3;
+        int listY = navButtonY + 25;
         int listX = x + PADDING;
-        int listY = y + 55;
         
         guiGraphics.fill(listX, listY, listX + LIST_WIDTH, listY + LIST_HEIGHT, 0xFF202020);
         
@@ -165,7 +221,7 @@ public class SchematicsTab extends TabPanel {
             schematicsList.render(guiGraphics, mouseX, mouseY, partialTick);
         }
         
-        renderInfoPanel(guiGraphics);
+        renderInfoPanel(guiGraphics, listY);
         
         String currentPath = "Path: " + SchematicManager.getCurrentPath();
         guiGraphics.drawString(
@@ -178,9 +234,95 @@ public class SchematicsTab extends TabPanel {
         );
     }
     
-    private void renderInfoPanel(GuiGraphics guiGraphics) {
+    private void renderClipboardInfo(GuiGraphics guiGraphics) {
+        int buttonY = y + 5;
+        int clipboardRowY = buttonY + 25;
+        int rowX = x + PADDING;
+        int rowWidth = 330;
+        
+        int bgColor = 0xFF1A1A1A;
+        if (clipboardHighlightTicks > 0) {
+            float alpha = (float) clipboardHighlightTicks / HIGHLIGHT_DURATION;
+            int green = (int) (alpha * 80);
+            bgColor = 0xFF000000 | (green << 8) | 0x1A1A;
+        }
+        guiGraphics.fill(rowX, clipboardRowY, rowX + rowWidth, clipboardRowY + CLIPBOARD_ROW_HEIGHT, bgColor);
+        
+        guiGraphics.fill(rowX, clipboardRowY, rowX + 1, clipboardRowY + CLIPBOARD_ROW_HEIGHT, 0xFF444444);
+        guiGraphics.fill(rowX + rowWidth - 1, clipboardRowY, rowX + rowWidth, clipboardRowY + CLIPBOARD_ROW_HEIGHT, 0xFF444444);
+        guiGraphics.fill(rowX, clipboardRowY, rowX + rowWidth, clipboardRowY + 1, 0xFF444444);
+        guiGraphics.fill(rowX, clipboardRowY + CLIPBOARD_ROW_HEIGHT - 1, rowX + rowWidth, clipboardRowY + CLIPBOARD_ROW_HEIGHT, 0xFF444444);
+        
+        ArrayList<StatePos> clipboardBlocks = HistoryTab.getClipboardBlocks();
+        int textY = clipboardRowY + 6;
+        
+        if (clipboardBlocks != null && !clipboardBlocks.isEmpty()) {
+            String dimensions = calculateDimensions(clipboardBlocks);
+            String clipboardText = "Clipboard: " + clipboardBlocks.size() + " blocks";
+            if (dimensions != null) {
+                clipboardText += " (" + dimensions + ")";
+            }
+            
+            int textColor = clipboardHighlightTicks > 0 ? 0x55FF55 : 0x55FF55;
+            guiGraphics.drawString(
+                Minecraft.getInstance().font,
+                clipboardText,
+                rowX + 5,
+                textY,
+                textColor,
+                false
+            );
+            
+            if (clipboardTimestamp != null) {
+                String timeText = "@ " + clipboardTimestamp;
+                int timeX = rowX + 200;
+                guiGraphics.drawString(
+                    Minecraft.getInstance().font,
+                    timeText,
+                    timeX,
+                    textY,
+                    0xAAAAAA,
+                    false
+                );
+            }
+        } else {
+            guiGraphics.drawString(
+                Minecraft.getInstance().font,
+                "Clipboard: Empty",
+                rowX + 5,
+                textY,
+                0x888888,
+                false
+            );
+        }
+    }
+    
+    private String calculateDimensions(ArrayList<StatePos> blocks) {
+        if (blocks == null || blocks.isEmpty()) return null;
+        
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        
+        for (StatePos statePos : blocks) {
+            BlockPos pos = statePos.pos;
+            minX = Math.min(minX, pos.getX());
+            minY = Math.min(minY, pos.getY());
+            minZ = Math.min(minZ, pos.getZ());
+            maxX = Math.max(maxX, pos.getX());
+            maxY = Math.max(maxY, pos.getY());
+            maxZ = Math.max(maxZ, pos.getZ());
+        }
+        
+        int sizeX = maxX - minX + 1;
+        int sizeY = maxY - minY + 1;
+        int sizeZ = maxZ - minZ + 1;
+        
+        return sizeX + " x " + sizeY + " x " + sizeZ;
+    }
+    
+    private void renderInfoPanel(GuiGraphics guiGraphics, int listY) {
         int infoX = x + PADDING + LIST_WIDTH + PADDING;
-        int infoY = y + 55;
+        int infoY = listY;
         
         guiGraphics.fill(infoX, infoY, infoX + INFO_PANEL_WIDTH, infoY + LIST_HEIGHT, 0xFF2A2A2A);
         
@@ -469,6 +611,13 @@ public class SchematicsTab extends TabPanel {
                 ClipboardUtils.requestTEDataFromServer();
             }
         }
+        
+        if (clipboardHighlightTicks > 0) {
+            clipboardHighlightTicks--;
+        }
+        
+        updateSaveButtonText();
+        updateClearButtonState();
     }
 }
 
