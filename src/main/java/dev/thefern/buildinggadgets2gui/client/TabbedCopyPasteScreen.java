@@ -219,6 +219,21 @@ public class TabbedCopyPasteScreen extends Screen {
         helpTab.onTabDeactivated();
         debugTab.onTabDeactivated();
         getCurrentTabPanel().onTabActivated();
+        
+        updateTabButtonFocus();
+    }
+    
+    private void updateTabButtonFocus() {
+        schematicsButton.setFocused(currentTab == TabType.SCHEMATICS);
+        searchButton.setFocused(currentTab == TabType.SEARCH);
+        historyButton.setFocused(currentTab == TabType.HISTORY);
+        trashButton.setFocused(currentTab == TabType.TRASH);
+        settingsButton.setFocused(currentTab == TabType.SETTINGS);
+        helpButton.setFocused(currentTab == TabType.HELP);
+        if (debugButton != null) {
+            debugButton.setFocused(currentTab == TabType.DEBUG);
+        }
+        closeButton.setFocused(false);
     }
     
     private void switchTab(TabType tab) {
@@ -227,6 +242,7 @@ public class TabbedCopyPasteScreen extends Screen {
             currentTab = tab;
             lastActiveTab = tab;
             getCurrentTabPanel().onTabActivated();
+            updateTabButtonFocus();
         }
     }
     
