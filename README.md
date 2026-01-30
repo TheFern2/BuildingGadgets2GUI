@@ -5,6 +5,10 @@ This is a Minecraft NeoForge mod that enhances the Building Gadgets 2 (BG2) mod 
 
 > NB: You need to have Bg2 installed, this mod does not replace Bg2!
 
+## Demo
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/jvgUZcK9BHc/0.jpg)](https://www.youtube.com/watch?v=jvgUZcK9BHc)
+
+
 ## Key Features
 - GUI interface for BG2 copy/paste tool
 - Schematic save/load functionality
